@@ -35,9 +35,9 @@ def convert_dicom_to_nifti(dicom_dir, output_nifti_path):
 if __name__ == "__main__":
     # 【请在这里修改为你的真实路径】
     # 比如你的 dcm 文件都在 D 盘的 data/patient1 文件夹下
-    INPUT_DICOM_FOLDER = r"D:\copd-radiomics\testDCM" 
+    INPUT_DICOM_FOLDER = "testDCM" 
     
     # 你希望保存的 .nii.gz 文件名和路径
-    OUTPUT_NIFTI_FILE = r"D:\copd-radiomics\patient_99_ct.nii.gz"
+    OUTPUT_NIFTI_FILE = "patient_99_ct.nii.gz"
     
     convert_dicom_to_nifti(INPUT_DICOM_FOLDER, OUTPUT_NIFTI_FILE)

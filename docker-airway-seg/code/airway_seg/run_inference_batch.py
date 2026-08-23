@@ -2,15 +2,15 @@
 """
 Batch airway segmentation inference script for Connectivity-Aware-Airway-Segmentaion.
 
-遍历「已转换的」患者文件夹（例如 E:\\DICOM\\2026-05-nifti 或 E:\\DICOM\\2026-07-lung-nifti）：
+遍历「已转换的」患者文件夹（例如 <nifti_dir>）：
   1. 每个患者文件夹读取 <患者名>_dicom_info.json（由 dcm2nii_batch_arg.py 生成）；
   2. 依据 JSON 中的序列信息，找到层数最多的那个 .nii.gz（若 JSON 缺失则直接用 nibabel 量 z 轴层数）；
   3. 用 AirwayExtractionModel 对选中的 NIfTI 做气道分割；
   4. 结果保存到输出目录，并按患者生成 inference json + 汇总 json。
 
 Usage examples:
-  python run_inference_batch.py -i E:\\DICOM\\2026-05-nifti -o D:\\copd-radiomics\\Airway_out_batch
-  python run_inference_batch.py -i E:\\DICOM\\2026-07-lung-nifti -o E:\\DICOM\\2026-07-lung-airway -d cuda:0
+  python run_inference_batch.py -i <nifti_dir> -o <output_dir>
+  python run_inference_batch.py -i <nifti_dir> -o <output_dir> -d cuda:0
 """
 from pathlib import Path
 import argparse

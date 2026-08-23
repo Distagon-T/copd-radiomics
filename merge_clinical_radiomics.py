@@ -8,10 +8,10 @@ merge_clinical_radiomics.py
 
 用法：
   python merge_clinical_radiomics.py \
-      --xlsx  D:\\copd-radiomics\\Asthma.xlsx \
-      --csv   E:\\DICOM\\2026-04-seg-part1\\radiomics_all_patients.csv \
-      --out   E:\\DICOM\\2026-04-seg-part1\\radiomics_clinical_merged.csv \
-      --report E:\\DICOM\\2026-04-seg-part1\\clinical_variable_report.csv
+      --xlsx  Asthma.xlsx \
+      --csv   radiomics_all_patients.csv \
+      --out   radiomics_clinical_merged.csv \
+      --report clinical_variable_report.csv
 
 说明：
   1. 脚本自动在 xlsx 全表中按关键字挑选临床列（无需手工列名），

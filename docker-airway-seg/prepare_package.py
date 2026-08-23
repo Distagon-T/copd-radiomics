@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent          # docker-airway-seg/
-PROJ = ROOT.parent                               # d:\copd-radiomics
+PROJ = ROOT.parent
 SRC_AIRWAY = PROJ / "Connectivity-Aware-Airway-Segmentaion"
 SRC_TOTALSEG = Path.home() / ".totalsegmentator" / "nnunet"
 SRC_SCRIPTS = [

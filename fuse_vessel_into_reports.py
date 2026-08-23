@@ -14,7 +14,7 @@ import re
 import numpy as np
 import pandas as pd
 
-SEG = r"E:\DICOM\2026-05-seg"
+SEG = "seg_results"
 UNI_CSV = os.path.join(SEG, "vessel_features_univariate_ALL.csv")
 BOOST_CSV = os.path.join(SEG, "vessel_boost_comparison.csv")
 

@@ -6,8 +6,8 @@ aggregate_airquant.py
 把 AirQuant 的 branch 级指标聚合成 patient 级特征。
 
 输入:
-  E:\DICOM\2026-04-Airway_metrics_tmp\<patient>_airquant\<patient>_full_metrics.csv
-  E:\DICOM\2026-04-Airway_metrics_tmp\<patient>_airquant\<patient>_airquant_info.json
+  <airway_metrics_dir>/<patient>_airquant/<patient>_full_metrics.csv
+  <airway_metrics_dir>/<patient>_airquant/<patient>_airquant_info.json
 
 输出:
   <out_dir>/airquant_patient_aggregated.csv  (key = patient folder name)
@@ -26,7 +26,7 @@ import re
 import numpy as np
 import pandas as pd
 
-AQ_DIR = r"E:\DICOM\2026-04-Airway_metrics_tmp"
+AQ_DIR = "airway_metrics"
 
 NUM_COLS = [
     "stats_arclength", "stats_change_deg", "stats_euclength",
@@ -108,9 +108,9 @@ def aggregate_one(patient_dir, id_set=None):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--aq-dir", default=AQ_DIR)
-    ap.add_argument("--id-csv", default=r"E:\DICOM\2026-04-seg-part1\radiomics_all_patients.csv",
+    ap.add_argument("--id-csv", default="radiomics_all_patients.csv",
                     help="radiomics CSV（提供 Patient_ID 集合用于名称对齐，可省）")
-    ap.add_argument("--out", default=r"E:\DICOM\2026-04-seg-part1\airquant_patient_aggregated.csv")
+    ap.add_argument("--out", default="airquant_patient_aggregated.csv")
     args = ap.parse_args()
 
     id_set = None

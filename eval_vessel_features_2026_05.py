@@ -21,7 +21,7 @@ except Exception:
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from train_fusion_model import univariate_summary
 
-SEG = r"E:\DICOM\2026-05-seg"
+SEG = "seg_results"
 VESSEL_CSV = os.path.join(SEG, "radiomics_2026_05_features_vessel.csv")
 
 VESSEL_COLS = [

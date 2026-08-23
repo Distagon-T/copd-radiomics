@@ -10,7 +10,7 @@ import SimpleITK as sitk
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from compute_patient_radiomics_fast import vessel_advanced_features
 
-SEG = r"E:\DICOM\2026-05-seg"
+SEG = "seg_results"
 patient = "20130130_Anonymous_CT_1.2.840.113619.2.55.3.1678396440.5613.1359500545.33501186"
 mask_path = os.path.join(SEG, f"{patient}_masks", "lung_vessels.nii.gz")
 print("mask exists:", os.path.exists(mask_path))

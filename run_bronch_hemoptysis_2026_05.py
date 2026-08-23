@@ -41,8 +41,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from train_fusion_model import load_and_join, norm_id, select_features, univariate_summary
 from plot_consistency_2026_05 import bootstrap_auc, forest_plot
 
-SEG = r"E:\DICOM\2026-05-seg"
-INFO = r"E:\DICOM\2026-05\info-2026-05.csv"
+SEG = "seg_results"
+INFO = "info.csv"
 RAD = os.path.join(SEG, "radiomics_2026_05_features.csv")
 AQ = os.path.join(SEG, "airquant_2026_05_aggregated.csv")
 LAB_OUT = os.path.join(SEG, "labels_bronch_hemoptysis_2026_05.csv")

@@ -11,17 +11,17 @@ check_pi10.py / train_fusion_model.py --airquant 零改动自动纳入。
 
 前置步骤：
   1) 在 MATLAB 里把 compute_airway_features.m 的
-     METRICS_DIR = 'E:\\DICOM\\2026-05-Airway_metrics_tmp'
-     FEATURES_DIR = 'E:\\DICOM\\2026-05-Airway_features'
-     跑完后生成 E:\\DICOM\\2026-05-Airway_features\\airway_features_all.csv
-  2) 已有 E:\\DICOM\\2026-05-seg\\airquant_2026_05_aggregated.csv（aggregate_airquant.py 产物）
+     METRICS_DIR = 'airway_metrics_tmp'
+     FEATURES_DIR = 'airway_features'
+     跑完后生成 airway_features/airway_features_all.csv
+  2) 已有 seg_results/airquant_2026_05_aggregated.csv（aggregate_airquant.py 产物）
 
 用法：
   python merge_airway_features_2026_05.py
   python merge_airway_features_2026_05.py \
-      --matlab-feats E:\\DICOM\\2026-05-Airway_features\\airway_features_all.csv \
-      --airquant     E:\\DICOM\\2026-05-seg\\airquant_2026_05_aggregated.csv \
-      --out          E:\\DICOM\\2026-05-seg\\airquant_2026_05_aggregated.csv
+      --matlab-feats airway_features/airway_features_all.csv \
+      --airquant     seg_results/airquant_2026_05_aggregated.csv \
+      --out          seg_results/airquant_2026_05_aggregated.csv
 """
 import argparse
 import os
@@ -37,8 +37,8 @@ try:
 except Exception:
     pass
 
-SEG = r"E:\DICOM\2026-05-seg"
-DEFAULT_MATLAB_FEATS = r"E:\DICOM\2026-05-Airway_features\airway_features_all.csv"
+SEG = "seg_results"
+DEFAULT_MATLAB_FEATS = "airway_features_all.csv"
 DEFAULT_AIRQUANT = os.path.join(SEG, "airquant_2026_05_aggregated.csv")
 
 # 这些 MATLAB 列与基础 aq_* 已有等价列（aq_Pi10 / aq_n_branches），跳过避免重复

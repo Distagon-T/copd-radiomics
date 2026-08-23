@@ -140,8 +140,8 @@ def run_batch_extraction(ct_dir, mask_base_dir, output_csv):
 # ================= 运行区 =================
 if __name__ == "__main__":
     # 【请确认以下三个路径与你的服务器环境一致】
-    CT_FOLDER = r"D:\copd-radiomics\ct_source"               # 存放 99 个 patient_xx_ct.nii.gz 的目录
-    MASKS_FOLDER = r"D:\copd-radiomics\seg_results"       # 存放 patient_xx_masks 文件夹的根目录
-    OUTPUT_CSV = r"D:\copd-radiomics\COPD_Radiomics_Cohort.csv"    # 最终汇总的 CSV 文件路径
+    CT_FOLDER = "ct_source"               # 存放 99 个 patient_xx_ct.nii.gz 的目录
+    MASKS_FOLDER = "seg_results"       # 存放 patient_xx_masks 文件夹的根目录
+    OUTPUT_CSV = "COPD_Radiomics_Cohort.csv"    # 最终汇总的 CSV 文件路径
     
     run_batch_extraction(CT_FOLDER, MASKS_FOLDER, OUTPUT_CSV)

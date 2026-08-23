@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 
 PY = sys.executable
-OVERLAP = r"E:\DICOM\2026-05\2026-5-9-overlap.xlsx"
-INFO = r"E:\DICOM\2026-05\info-2026-05.csv"
+OVERLAP = "overlap.xlsx"
+INFO = "info.csv"
 
 print("=== overlap xlsx ===")
 xl = pd.ExcelFile(OVERLAP)
@@ -45,8 +45,8 @@ if id_col and lab_col:
     print("overlap=0 患者数:", int((m[lab_col] == 0).sum()))
     print("overlap=NaN 患者数:", int(m[lab_col].isna().sum()))
     # 保存合并结果供后续使用
-    m.to_csv(r"E:\DICOM\2026-05-seg\_info_with_overlap.csv", index=False, encoding="utf-8-sig")
-    print("已保存 -> E:\\DICOM\\2026-05-seg\\_info_with_overlap.csv")
+    m.to_csv("_info_with_overlap.csv", index=False, encoding="utf-8-sig")
+    print("已保存 -> _info_with_overlap.csv")
 
 print("\n=== 主要诊断 唯一值分布 (全部) ===")
 vc = info["主要诊断"].fillna("").astype(str).value_counts()

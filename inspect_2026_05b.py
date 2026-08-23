@@ -6,7 +6,7 @@ import glob
 import pandas as pd
 
 # myInfo.csv
-df = pd.read_csv(r"E:\myInfo.csv", encoding="gb18030", nrows=3)
+df = pd.read_csv(r"myInfo.csv", encoding="gb18030", nrows=3)
 print(f"=== myInfo.csv ===")
 print(f"列数: {len(df.columns)}")
 cols = list(df.columns)
@@ -24,7 +24,7 @@ if sub is not None:
     print(f"\n患者id 非空: {len(sub)}, 样例: {sub['患者id'].head(5).tolist()}")
 
 # AirQuant 2026-05 schema
-aq = glob.glob(r"E:\DICOM\2026-05-Airway_metrics_tmp\*_airquant\*_full_metrics.csv")
+aq = glob.glob("airway_metrics/*_airquant/*_full_metrics.csv")
 print(f"\n=== AirQuant 2026-05 ===")
 print(f"metrics csv: {len(aq)}")
 if aq:

@@ -9,9 +9,9 @@ try:
 except Exception:
     pass
 
-INFO = r"E:\DICOM\2026-05\info-2026-05.csv"
-OVERLAP = r"E:\DICOM\2026-05\2026-5-9-overlap.xlsx"
-RAD = r"E:\DICOM\2026-05-seg\radiomics_2026_05_features.csv"
+INFO = "info.csv"
+OVERLAP = "overlap.xlsx"
+RAD = "radiomics_2026_05_features.csv"
 
 info = pd.read_csv(INFO, encoding="utf-8")
 ov = pd.read_excel(OVERLAP)

@@ -4,8 +4,8 @@
 import os
 import time
 
-E = r"E:\asthma.xlsx"
-D = r"D:\copd-radiomics\Asthma.xlsx"
+E = "asthma.xlsx"
+D = "Asthma.xlsx"
 
 for p in (E, D):
     print(f"{p}: size={os.path.getsize(p):,} bytes")

@@ -6,9 +6,9 @@ import os
 import pandas as pd
 
 candidates = [
-    r"E:\DICOM\2026-05\2026-5-9提取.xlsx",
-    r"E:\DICOM\2026-05\2026-5-9提取.xls",
-    r"D:\copd-radiomics\Asthma.xlsx",
+    r"2026-5-9提取.xlsx",
+    r"2026-5-9提取.xls",
+    r"Asthma.xlsx",
 ]
 
 KEYWORDS = ["嗜酸", "嗜酸性", "中性粒", "白细胞", "血红蛋白", "患者id", "住院号", "病历号"]

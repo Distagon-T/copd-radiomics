@@ -3,11 +3,11 @@
 """
 compute_2026_05_vessel_features.py
 ===================================
-给 E:\\DICOM\\2026-05-nifti\\ 下所有患者补充肺血管高级特征
+给 <nifti_dir> 下所有患者补充肺血管高级特征
 （分形维度 / BV5-BV10 / 中心线图论），输出全部患者的 Vessel_* 特征。
 
 - 患者来源: 扫描 nifti 目录所有文件夹（1106 例）
-- 掩膜来源: E:\\DICOM\\2026-05-seg\\<患者>_masks\\lung_vessels.nii.gz
+- 掩膜来源: <seg_dir>/<患者>_masks/lung_vessels.nii.gz
            （无掩膜的患者无法计算 -> NaN）
 - 多进程并行 + 增量落盘缓存（每 25 例保存一次，重启不丢进度）
 - 输出:
@@ -32,8 +32,8 @@ except Exception:
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from compute_patient_radiomics_fast import vessel_advanced_features
 
-NIFTI = r"E:\DICOM\2026-05-nifti"
-SEG = r"E:\DICOM\2026-05-seg"
+NIFTI = "nifti_input"
+SEG = "seg_results"
 RAD_CSV = os.path.join(SEG, "radiomics_2026_05_features.csv")
 OUT_ALL = os.path.join(SEG, "vessel_feats_2026_05_all.csv")
 OUT_RAD = os.path.join(SEG, "radiomics_2026_05_features_vessel.csv")

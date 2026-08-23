@@ -29,8 +29,8 @@ from sklearn.preprocessing import StandardScaler
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from train_fusion_model import load_and_join, select_features, norm_id
 
-SEG = r"E:\DICOM\2026-05-seg"
-AQ_DIR = r"E:\DICOM\2026-05-Airway_metrics_tmp"
+SEG = "seg_results"
+AQ_DIR = "airway_metrics"
 FIGDIR = os.path.join(SEG, "figs")
 os.makedirs(FIGDIR, exist_ok=True)
 

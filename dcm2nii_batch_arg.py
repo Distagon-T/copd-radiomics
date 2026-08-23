@@ -245,11 +245,11 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-i", "--input",
-        help="包含患者文件夹的根目录（例如 H:\\DICOM\\202607\\2026-07-heart）"
+        help="包含患者文件夹的根目录（例如 data/2026-07-heart）"
     )
     parser.add_argument(
         "-o", "--output",
-        help="输出 NIfTI 文件的目标根目录（例如 H:\\DICOM\\202607\\2026-07-heart-nifti）"
+        help="输出 NIfTI 文件的目标根目录（例如 data/2026-07-heart-nifti）"
     )
     args = parser.parse_args()
 

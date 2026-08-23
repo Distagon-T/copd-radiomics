@@ -1,9 +1,9 @@
-ct_dir = 'D:\copd-radiomics\ct_source\';
+ct_dir = 'ct_source/';
 ct_files = dir(fullfile(ct_dir, 'patient_10_ct.nii.gz'));
 
 
     filepath = fullfile(ct_files.folder, ct_files.name);
-    outpath = 'D:\copd-radiomics\ct_sourceX\patient_10_ct.nii.gz';
+    outpath = 'ct_sourceX/patient_10_ct.nii.gz';
     img = niftiread(filepath);
     info = niftiinfo(filepath);
 

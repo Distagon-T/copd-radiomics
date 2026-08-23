@@ -8,7 +8,7 @@ import json
 import pandas as pd
 
 pids = []
-for f in glob.glob(r"E:\DICOM\2026-05-seg\*_radiomics.json"):
+for f in glob.glob("seg_results/*_radiomics.json"):
     try:
         with open(f, encoding="utf-8") as fh:
             r = json.load(fh)
@@ -19,7 +19,7 @@ for f in glob.glob(r"E:\DICOM\2026-05-seg\*_radiomics.json"):
 pids = sorted(set(pids))
 print(f"真实 json PatientID 数: {len(pids)}, 样例: {pids[:5]}")
 
-df = pd.read_csv(r"E:\myInfo.csv", encoding="gb18030", low_memory=False)
+df = pd.read_csv(r"myInfo.csv", encoding="gb18030", low_memory=False)
 print(f"myInfo: {len(df)} 行 x {len(df.columns)} 列")
 
 targets = pids[:10] + [p.lstrip("0") for p in pids[:10]]

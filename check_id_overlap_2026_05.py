@@ -8,7 +8,7 @@ import pandas as pd
 
 # 1) radiomics PatientID
 pids = []
-for f in glob.glob(r"E:\DICOM\2026-05-seg\*_radiomics.json"):
+for f in glob.glob("seg_results/*_radiomics.json"):
     try:
         with open(f, encoding="utf-8") as fh:
             r = json.load(fh)
@@ -30,7 +30,7 @@ pids_n = sorted({norm(p) for p in pids})
 print("归一化样例:", pids_n[:10])
 
 # 2) myInfo.csv 患者id
-info = pd.read_csv(r"E:\myInfo.csv", encoding="gb18030", usecols=["患者id"])
+info = pd.read_csv(r"myInfo.csv", encoding="gb18030", usecols=["患者id"])
 info_ids = set(info["患者id"].dropna().astype(str).str.strip())
 info_n = set()
 for v in info_ids:

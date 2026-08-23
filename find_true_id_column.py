@@ -3,8 +3,8 @@
 """在 Asthma.xlsx 中搜索真正匹配 radiomics PatientID 的列"""
 import pandas as pd
 
-df = pd.read_excel(r'D:\copd-radiomics\Asthma.xlsx')
-radi = pd.read_csv(r'E:\DICOM\2026-04-seg-part1\radiomics_all_patients.csv',
+df = pd.read_excel('Asthma.xlsx')
+radi = pd.read_csv('radiomics_all_patients.csv',
                    dtype={'PatientID': str})
 ids = set(radi['PatientID'].astype(str).str.lstrip('0'))
 print(f'目标 PatientID 数: {len(ids)}, 样例: {list(ids)[:5]}')

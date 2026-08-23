@@ -64,8 +64,8 @@ def extract_radiomics(ct_path, mask_path):
 
 # ================= 运行区 =================
 if __name__ == "__main__":
-    ct_path = r"D:\copd-radiomics\patient_01_ct.nii.gz"
-    mask_dir = r"D:\copd-radiomics\patient01_masks_full_res"
+    ct_path = "patient_01_ct.nii.gz"
+    mask_dir = "patient01_masks_full_res"
     
     # 读取原始 CT
     ct_img = sitk.ReadImage(ct_path)
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     df = df[cols]
     
     # 5. 保存为 CSV 文件 (utf-8-sig 编码防止在 Windows Excel 里打开乱码)
-    output_csv = r"D:\copd-radiomics\patient01_features.csv"
+    output_csv = "patient01_features.csv"
     df.to_csv(output_csv, index=False, encoding='utf-8-sig')
     
     print(f"\n💾 完美！所有特征已永久保存至: {output_csv}")

@@ -5,7 +5,7 @@ import json
 import pandas as pd
 
 # 1) radiomics summary
-summ = r"E:\DICOM\2026-05-seg\radiomics_all_patients.json"
+summ = "radiomics_all_patients.json"
 with open(summ, encoding="utf-8") as f:
     recs = json.load(f)
 print(f"=== radiomics_all_patients.json: {len(recs)} 条 ===")
@@ -26,7 +26,7 @@ nonempty_pid = sum(1 for r in recs if r.get("PatientID"))
 print(f"PatientID 非空: {nonempty_pid}/{len(recs)}")
 
 # 2) E:/asthma.xlsx 结构
-xl = r"E:\asthma.xlsx"
+xl = "asthma.xlsx"
 df = pd.read_excel(xl, nrows=5)
 print(f"\n=== {xl} ===")
 print(f"列数: {len(df.columns)}")

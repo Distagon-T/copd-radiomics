@@ -245,9 +245,9 @@ def batch_segment_largest_slice(input_base_dir, output_base_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="找到每个患者文件夹中层数最多的 NIfTI 文件并进行全器官分割")
-    parser.add_argument("-i", "--input", default=r"E:\DICOM\2026-05-nifti",
+    parser.add_argument("-i", "--input", default="nifti_input",
                         help="患者 NIfTI 文件夹所在目录（已由 dcm2nii_batch_arg.py 生成）")
-    parser.add_argument("-o", "--output", default=r"D:\copd-radiomics\seg_results",
+    parser.add_argument("-o", "--output", default="seg_results",
                         help="分割结果输出目录")
     args = parser.parse_args()
 

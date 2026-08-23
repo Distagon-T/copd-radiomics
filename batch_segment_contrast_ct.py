@@ -309,9 +309,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="处理混合平扫/增强 CT：优先分割增强 CT (+C)，否则分割层数最多的序列"
     )
-    parser.add_argument("-i", "--input", default=r"E:\DICOM\2026-07-lung-nifti",
+    parser.add_argument("-i", "--input", default="nifti_input",
                         help="患者 NIfTI 文件夹所在目录（含 dicom_info.json）")
-    parser.add_argument("-o", "--output", default=r"E:\DICOM\2026-07-lung-seg",
+    parser.add_argument("-o", "--output", default="seg_output",
                         help="分割结果输出目录（默认放在输入文件夹旁边）")
     args = parser.parse_args()
 

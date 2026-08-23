@@ -28,7 +28,7 @@ from sklearn.preprocessing import StandardScaler
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from train_fusion_model import select_features, univariate_summary
 
-SEG = r"E:\DICOM\2026-05-seg"
+SEG = "seg_results"
 RAD_CSV = os.path.join(SEG, "radiomics_2026_05_features_vessel.csv")
 SEED = 42
 N_BOOT = 150

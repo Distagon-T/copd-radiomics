@@ -163,7 +163,7 @@ def batch_extract_ultimate(ct_dir, mask_base_dir, output_csv):
         print(f"   ✅ {patient_id} 融合提取完成！当前累计特征维度: {len(patient_dict)-1} 列")
 
 if __name__ == "__main__":
-    CT_FOLDER = r"D:\copd-radiomics" 
-    MASK_FOLDER = r"D:\copd-radiomics\seg_results"
-    FINAL_CSV = r"D:\copd-radiomics\The_Ultimate_COPD_Features.csv"
+    CT_FOLDER = "." 
+    MASK_FOLDER = "seg_results"
+    FINAL_CSV = "The_Ultimate_COPD_Features.csv"
     batch_extract_ultimate(CT_FOLDER, MASK_FOLDER, FINAL_CSV)

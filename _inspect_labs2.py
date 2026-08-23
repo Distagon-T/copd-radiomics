@@ -6,8 +6,8 @@ import os
 import numpy as np
 import pandas as pd
 
-XLSX = r"D:\copd-radiomics\Asthma.xlsx"
-LAB_NSFC = r"E:\DICOM\2026-05-seg\labels_nsfc_2026_05.csv"
+XLSX = "Asthma.xlsx"
+LAB_NSFC = "labels_nsfc_2026_05.csv"
 
 df = pd.read_excel(XLSX, nrows=200)
 cols = [str(c) for c in df.columns]

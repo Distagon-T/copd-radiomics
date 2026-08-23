@@ -14,14 +14,14 @@ GPU 集成测试：
   - 若机器无可用 CUDA GPU，会自动跳过（pytest -m "gpu"）。
 
 运行（全部，含 GPU 分割，耗时较长）:
-  cd D:\\copd-radiomics
-  & "C:\\ProgramData\\miniconda3\\envs\\copd-radiomics\\python.exe" -m pytest tests\\test_batch_segment_largest_slice.py -v
+  cd <repo_root>
+  python -m pytest tests/test_batch_segment_largest_slice.py -v
 
 只跑 GPU 集成测试:
-  & "C:\\ProgramData\\miniconda3\\envs\\copd-radiomics\\python.exe" -m pytest tests\\test_batch_segment_largest_slice.py -m gpu -v
+  python -m pytest tests/test_batch_segment_largest_slice.py -m gpu -v
 
 只跑快速逻辑测试（跳过 GPU）:
-  & "C:\\ProgramData\\miniconda3\\envs\\copd-radiomics\\python.exe" -m pytest tests\\test_batch_segment_largest_slice.py -m "not gpu" -v
+  python -m pytest tests/test_batch_segment_largest_slice.py -m "not gpu" -v
 """
 import os
 import json

@@ -14,10 +14,10 @@ generate_labels.py
 
 用法：
   python generate_labels.py \
-      --xlsx D:\\copd-radiomics\\Asthma.xlsx \
-      --csv  E:\\DICOM\\2026-04-seg-part1\\radiomics_all_patients.csv \
-      --out  E:\\DICOM\\2026-04-seg-part1\\patient_cvd_labels.csv \
-      --report E:\\DICOM\\2026-04-seg-part1\\label_diagnostics.txt
+      --xlsx Asthma.xlsx \\
+      --csv  radiomics_all_patients.csv \\
+      --out  patient_cvd_labels.csv \\
+      --report label_diagnostics.txt
 """
 import argparse
 import re

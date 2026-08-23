@@ -7,7 +7,7 @@ run_nsfc_2026_05.py
 
   1) 从 info-2026-05.csv 的「主要诊断」按急性事件关键词池生成 NSFC_AE_Label
      （COPD 急性加重/下呼吸道感染/合并感染/肺部感染 + 支扩合并感染/咯血 -> 1；其余 -> 0）
-  2) 若 MATLAB 新版特征已产出（E:\\DICOM\\2026-05-Airway_features\\airway_features_all.csv），
+  2) 若 MATLAB 新版特征已产出（airway_features_all.csv），
      先并入 airquant_2026_05_aggregated.csv（新增 blur_*/TD_* 等 aq_ 列）
   3) 融合 pyRadiomics + AirQuant + NSFC label：分层 5 折 LR CV + 单变量 + bootstrap 一致性
   4) 输出图 (figs/fig_*_nsfc_2026_05.png) 与报告 report_nsfc_2026_05.md / .html
@@ -42,12 +42,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from train_fusion_model import load_and_join, norm_id, select_features, univariate_summary
 from plot_consistency_2026_05 import bootstrap_auc, forest_plot
 
-SEG = r"E:\DICOM\2026-05-seg"
-INFO_CSV = r"E:\DICOM\2026-05\info-2026-05.csv"
+SEG = "seg_results"
+INFO_CSV = "info.csv"
 RAD = os.path.join(SEG, "radiomics_2026_05_features.csv")
 AQ = os.path.join(SEG, "airquant_2026_05_aggregated.csv")
 LAB_NSFC = os.path.join(SEG, "labels_nsfc_2026_05.csv")
-MATLAB_FEATS = r"E:\DICOM\2026-05-Airway_features\airway_features_all.csv"
+MATLAB_FEATS = "airway_features_all.csv"
 FIGDIR = os.path.join(SEG, "figs")
 MD_OUT = os.path.join(SEG, "report_nsfc_2026_05.md")
 HTML_OUT = os.path.join(SEG, "report_nsfc_2026_05.html")

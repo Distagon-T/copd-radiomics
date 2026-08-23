@@ -11,7 +11,7 @@ t0 = time.time()
 try:
     import openpyxl
     log(f"[1] import openpyxl ok {time.time()-t0:.1f}s")
-    wb = openpyxl.load_workbook(r"D:\copd-radiomics\Asthma.xlsx", read_only=True, data_only=True)
+    wb = openpyxl.load_workbook("Asthma.xlsx", read_only=True, data_only=True)
     log(f"[2] workbook open ok {time.time()-t0:.1f}s")
     ws = wb.worksheets[0]
     log(f"[3] sheet ok: {ws.max_row}x{ws.max_column} {time.time()-t0:.1f}s")

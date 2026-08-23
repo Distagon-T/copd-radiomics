@@ -9,7 +9,7 @@ try:
 except Exception:
     pass
 
-CSV = r"E:\DICOM\2026-05-seg\radiomics_2026_05_features.csv"
+CSV = "radiomics_2026_05_features.csv"
 df = pd.read_csv(CSV, nrows=3)
 cols = [c for c in df.columns]
 print(f"总列数: {len(cols)}")

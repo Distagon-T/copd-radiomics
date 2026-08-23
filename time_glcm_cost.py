@@ -9,8 +9,8 @@ import logging
 logging.getLogger('radiomics').setLevel(logging.WARNING)
 sitk.ProcessObject.SetGlobalDefaultNumberOfThreads(0)
 
-CT = r'E:\DICOM\04nifti-tmp\20130305_CHEN RONG_CT_1.2.840.113619.2.55.3.1678396440.5697.1362438466.323\20130305_CHEN RONG_CT_1.2.840.113619.2.55.3.1678396440.5697.1362438466.323_4.nii.gz'
-MASK_DIR = r'E:\DICOM\2026-04-seg-part1\20130305_CHEN RONG_CT_1.2.840.113619.2.55.3.1678396440.5697.1362438466.323_masks'
+CT = r'<path/to/CT.nii.gz>'            # TODO: 替换为实际 CT 路径
+MASK_DIR = r'<path/to/patient_masks>'  # TODO: 替换为实际掩膜目录
 
 BASE = {'binWidth': 25, 'force2D': False, 'voxelArrayShift': 1000,
         'interpolator': sitk.sitkBSpline}

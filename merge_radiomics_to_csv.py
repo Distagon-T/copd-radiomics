@@ -9,8 +9,8 @@
 作为单独一列 PatientID 写入 CSV（保留 Patient_ID 文件名列）。
 
 用法：
-  python merge_radiomics_to_csv.py --seg-dir E:\\DICOM\\2026-07-lung-seg \\
-                                   --output E:\\DICOM\\2026-07-lung-seg\\radiomics_all_patients.csv
+  python merge_radiomics_to_csv.py --seg-dir <seg_dir> \\
+                                   --output <seg_dir>/radiomics_all_patients.csv
 """
 import os
 import sys

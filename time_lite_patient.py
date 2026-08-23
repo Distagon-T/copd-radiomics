@@ -9,8 +9,8 @@ time_lite_patient.py
   4. 单患者总耗时
 
 用法：
-  python time_lite_patient.py --nifti-dir E:\\DICOM\\04nifti-tmp \
-                              --seg-dir E:\\DICOM\\2026-04-seg-part1 \
+  python time_lite_patient.py --nifti-dir <nifti_dir> \\
+                              --seg-dir <seg_dir> \\
                               --patients <患者ID> --workers 8
 """
 import argparse

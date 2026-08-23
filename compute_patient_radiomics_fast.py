@@ -21,8 +21,8 @@
 
 输出：<患者>_radiomics.json（与慢版同格式，可共用 merge_radiomics_to_csv.py）
 用法：
-  python compute_patient_radiomics_fast.py -n E:\\DICOM\\2026-07-lung-nifti \\
-                                           -s E:\\DICOM\\2026-07-lung-seg \\
+  python compute_patient_radiomics_fast.py -n <nifti_dir> \\
+                                           -s <seg_dir> \\
                                            --patients <id> --force
 """
 import os

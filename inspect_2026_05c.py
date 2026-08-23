@@ -6,7 +6,7 @@ import json
 
 import pandas as pd
 
-info = pd.read_csv(r"E:\DICOM\2026-05\info-2026-05.csv", encoding="utf-8")
+info = pd.read_csv("info-2026-05.csv", encoding="utf-8")
 print(f"info-2026-05.csv: {len(info)} 行 x {len(info.columns)} 列")
 print("列:", list(info.columns))
 print()
@@ -22,7 +22,7 @@ for _, r in info[lab].head(5).iterrows():
 ids_info = set(info["患者id"].dropna().astype(str).str.strip())
 ids_info_n = {i.lstrip("0") for i in ids_info}
 pids = set()
-for f in glob.glob(r"E:\DICOM\2026-05-seg\*_radiomics.json"):
+for f in glob.glob("seg_results/*_radiomics.json"):
     try:
         with open(f, encoding="utf-8") as fh:
             r = json.load(fh)

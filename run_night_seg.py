@@ -25,9 +25,9 @@ def run_full_cpu_seg(input_ct_path, output_dir):
 # ================= 运行区 =================
 if __name__ == "__main__":
     # 【替换为你刚才生成的 nii.gz 绝对路径】
-    TEST_CT = r"D:\copd-radiomics\patient_01_ct.nii.gz"
+    TEST_CT = "patient_01_ct.nii.gz"
     
     # 建议换一个新的输出文件夹，免得覆盖了之前 fast 模式的结果，方便明天做对比
-    OUTPUT_MASKS = r"D:\copd-radiomics\patient01_masks_full_res"
+    OUTPUT_MASKS = "patient01_masks_full_res"
     
     run_full_cpu_seg(TEST_CT, OUTPUT_MASKS)

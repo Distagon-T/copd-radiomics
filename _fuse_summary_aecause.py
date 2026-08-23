@@ -5,7 +5,7 @@ import base64
 import os
 import sys
 
-SEG = r"E:\DICOM\2026-05-seg"
+SEG = "seg_results"
 MD_OUT = os.path.join(SEG, "report_copd_ae_cause_2026_05.md")
 HTML_OUT = os.path.join(SEG, "report_copd_ae_cause_2026_05.html")
 

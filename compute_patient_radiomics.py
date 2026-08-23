@@ -15,8 +15,8 @@ E. 膈肌平坦度（肺底平面曲率/平坦度估算）
 
 输出：<患者>_radiomics.json 保存到分割结果文件夹（<患者>_masks/ 同级）
 用法：
-  python compute_patient_radiomics.py --nifti-dir E:\\DICOM\\2026-07-lung-nifti \\
-                                      --seg-dir E:\\DICOM\\2026-07-lung-seg
+  python compute_patient_radiomics.py --nifti-dir <nifti_dir> \\
+                                      --seg-dir <seg_dir>
 """
 import os
 import sys

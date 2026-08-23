@@ -5,9 +5,9 @@ import sys
 
 import pandas as pd
 
-XLSX = r"D:\copd-radiomics\Asthma.xlsx"
-RADI = r"E:\DICOM\2026-04-seg-part1\radiomics_all_patients.csv"
-CACHE = r"E:\DICOM\2026-04-seg-part1\clinical_80_cache.pkl"
+XLSX = "Asthma.xlsx"
+RADI = "radiomics_all_patients.csv"
+CACHE = "clinical_80_cache.pkl"
 
 try:
     df = pd.read_excel(XLSX)

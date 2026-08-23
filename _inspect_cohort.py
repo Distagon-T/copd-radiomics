@@ -5,7 +5,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 import numpy as np
 import pandas as pd
 
-M = r"E:\DICOM\2026-05-seg\_info_with_overlap.csv"
+M = "_info_with_overlap.csv"
 df = pd.read_csv(M)
 df["_pid"] = df["患者id"].astype(str).str.strip().str.lstrip("0")
 diag = df["主要诊断"].fillna("").astype(str)
@@ -47,7 +47,7 @@ print("\n被标为 0(稳定) 的诊断分布:")
 print(kept[kept["BCOS_AE_Label"]==0]["主要诊断"].value_counts().to_string())
 
 # 与建模特征交集
-rad = pd.read_csv(r"E:\DICOM\2026-05-seg\radiomics_2026_05_features.csv")
+rad = pd.read_csv("radiomics_2026_05_features.csv")
 rad_pid = set(rad["PatientID"].astype(str).str.strip().str.lstrip("0"))
 kept["has_radiomics"] = kept["_pid"].isin(rad_pid)
 model = kept[kept["has_radiomics"]]

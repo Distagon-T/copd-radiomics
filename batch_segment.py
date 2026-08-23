@@ -88,6 +88,6 @@ def batch_process_ct(input_dir, output_base_dir):
 
 if __name__ == "__main__":
     # 确认路径正确后发车
-    INPUT_FOLDER = r"D:\copd-radiomics\ct_source" 
-    OUTPUT_FOLDER = r"D:\copd-radiomics\seg_results"
+    INPUT_FOLDER = "ct_source" 
+    OUTPUT_FOLDER = "seg_results"
     batch_process_ct(INPUT_FOLDER, OUTPUT_FOLDER)

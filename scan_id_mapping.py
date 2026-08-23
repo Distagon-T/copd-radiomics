@@ -8,7 +8,7 @@ import pandas as pd
 
 # radiomics 样例 PatientID
 sample_pids = []
-for f in sorted(glob.glob(r"E:\DICOM\2026-05-seg\*_radiomics.json"))[:5]:
+for f in sorted(glob.glob("seg_results/*_radiomics.json"))[:5]:
     try:
         with open(f, encoding="utf-8") as fh:
             r = json.load(fh)
@@ -25,7 +25,7 @@ for f in sorted(glob.glob(r"E:\DICOM\2026-05-seg\*_radiomics.json"))[:5]:
 print("样例 PatientID:", sample_pids)
 
 # myInfo 全表搜索
-df = pd.read_csv(r"E:\myInfo.csv", encoding="gb18030", low_memory=False)
+df = pd.read_csv(r"myInfo.csv", encoding="gb18030", low_memory=False)
 print(f"\nmyInfo: {len(df)} 行 x {len(df.columns)} 列")
 targets = ["1006234", "1035996", "1502092", "1550034"]
 for t in targets:

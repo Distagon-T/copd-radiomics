@@ -3,8 +3,8 @@
 """检查心血管检验单位与分布"""
 import pandas as pd
 
-df = pd.read_excel(r'D:\copd-radiomics\Asthma.xlsx')
-csv = pd.read_csv(r'E:\DICOM\2026-04-seg-part1\radiomics_all_patients.csv', dtype={'PatientID': str})
+df = pd.read_excel('Asthma.xlsx')
+csv = pd.read_csv('radiomics_all_patients.csv', dtype={'PatientID': str})
 ids = set(csv['PatientID'].astype(str).str.lstrip('0'))
 sub = df[df['患者id'].astype(str).str.lstrip('0').isin(ids)].copy()
 

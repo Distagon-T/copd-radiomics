@@ -22,8 +22,8 @@ import pandas as pd
 # =========================================================================
 # 路径配置
 # =========================================================================
-METRICS_DIR = r"E:\DICOM\2026-04-Airway_metrics"   # batch_airway_quant 输出
-FEATURES_DIR = r"E:\DICOM\2026-04-Airway_features"  # 本脚本输出
+METRICS_DIR = os.environ.get("AQ_METRICS_DIR", "metrics")    # batch_airway_quant 输出
+FEATURES_DIR = os.environ.get("AQ_FEATURES_DIR", "features") # 本脚本输出
 os.makedirs(FEATURES_DIR, exist_ok=True)
 
 GEN_TARGETS = [3, 4, 5]

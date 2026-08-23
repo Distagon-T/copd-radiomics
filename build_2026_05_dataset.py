@@ -21,8 +21,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-SEG = r"E:\DICOM\2026-05-seg"
-INFO = r"E:\DICOM\2026-05\info-2026-05.csv"
+SEG = "seg_results"
+INFO = "info.csv"
 FEAT_OUT = os.path.join(SEG, "radiomics_2026_05_features.csv")
 LAB_OUT = os.path.join(SEG, "labels_2026_05.csv")
 REP = os.path.join(SEG, "label_diagnostics_2026_05.txt")

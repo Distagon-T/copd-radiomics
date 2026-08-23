@@ -17,7 +17,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-SEG = r"E:\DICOM\2026-05-seg"
+SEG = "seg_results"
 FIGDIR = os.path.join(SEG, "figs")
 MD_OUT = os.path.join(SEG, "report_2026_05.md")
 HTML_OUT = os.path.join(SEG, "report_2026_05.html")
@@ -233,11 +233,11 @@ def main():
     n_aq_feat, n_aq_merged, n_aq_total = airquant_counts()
 
     # ---- AirQuant MATLAB 可视化示例 ----
-    aq_examples = select_airquant_examples(SEG, r"E:\DICOM\2026-05-Airway_metrics_tmp",
+    aq_examples = select_airquant_examples(SEG, "airway_metrics",
                                            os.path.join(SEG, "labels_2026_05.csv"),
                                            os.path.join(SEG, "radiomics_2026_05_features.csv"))
     collage_path, n_pos_c, n_neg_c = build_airquant_collage(
-        SEG, r"E:\DICOM\2026-05-Airway_metrics_tmp",
+        SEG, "airway_metrics",
         os.path.join(SEG, "labels_2026_05.csv"),
         os.path.join(SEG, "radiomics_2026_05_features.csv"), n_each=2)
 
@@ -379,7 +379,7 @@ def main():
 
     # ---------- 输出目录确认 ----------
     print(f"\n图目录: {FIGDIR}")
-    print("报告与图均在 E:\\DICOM\\2026-05-seg\\ 下")
+    print("报告与图均在 seg_results 下")
 
 
 if __name__ == "__main__":

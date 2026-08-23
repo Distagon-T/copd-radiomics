@@ -4,9 +4,9 @@ clear; clc;
 % =========================================================================
 % 1. 定义专属路径 (只需提供这两个文件！)
 % =========================================================================
-CT_name    = 'D:\copd-radiomics\ct_sourceX\patient_00.nii.gz';  
+CT_name    = 'ct_sourceX/patient_00.nii.gz';  
 
-seg_name   = 'D:\copd-radiomics\Airway_out\patient_00_airway.nii.gz'; 
+seg_name   = 'Airway_out/patient_00_airway.nii.gz'; 
 
 % 自动生成输出路径
 output_csv  = strrep(seg_name, '.nii.gz', '_metrics.csv');

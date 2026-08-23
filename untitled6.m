@@ -1,5 +1,5 @@
 % 读取 CT 图像
-nii_file = 'D:\copd-radiomics\ct_source\patient_02_ct.nii.gz';
+nii_file = 'ct_source/patient_02_ct.nii.gz';
 tmp = niftiread(nii_file);
 
 % 获取图像尺寸

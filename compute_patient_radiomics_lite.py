@@ -16,8 +16,8 @@
 全量版保留在 compute_patient_radiomics_fast.py（肺叶 LoG+纹理、心肌 Wavelet 全开）。
 
 用法：
-  python compute_patient_radiomics_lite.py -n E:\\DICOM\\2026-07-lung-nifti \\
-                                            -s E:\\DICOM\\2026-07-lung-seg \\
+  python compute_patient_radiomics_lite.py -n <nifti_dir> \\
+                                            -s <seg_dir> \\
                                             --patients <id> --force --workers 8
 """
 import os

@@ -6,7 +6,7 @@ import json
 
 import pandas as pd
 
-OUT = open(r"E:\DICOM\2026-05-seg\scan_map3.log", "w", encoding="utf-8")
+OUT = open("scan_map3.log", "w", encoding="utf-8")
 
 
 def log(*a):
@@ -17,7 +17,7 @@ def log(*a):
 
 
 pids = set()
-for f in glob.glob(r"E:\DICOM\2026-05-seg\*_radiomics.json"):
+for f in glob.glob("seg_results/*_radiomics.json"):
     try:
         with open(f, encoding="utf-8") as fh:
             r = json.load(fh)
@@ -28,7 +28,7 @@ for f in glob.glob(r"E:\DICOM\2026-05-seg\*_radiomics.json"):
 pids_n = {p.lstrip("0") for p in pids}
 log(f"PatientID: {len(pids)} (归一化 {len(pids_n)})")
 
-df = pd.read_csv(r"E:\myInfo.csv", encoding="gb18030", low_memory=False)
+df = pd.read_csv(r"myInfo.csv", encoding="gb18030", low_memory=False)
 log(f"myInfo: {len(df)} 行 x {len(df.columns)} 列")
 
 found_any = False

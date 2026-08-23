@@ -214,7 +214,7 @@ def batch_process_dicom_folders(input_base_dir, output_base_dir):
 # ================= 运行区 =================
 if __name__ == "__main__":
     # 【请修改为你的实际路径】
-    INPUT_BASE_DIR = r"H:\DICOM\202607\2026-07-lung"  # 患者文件夹所在的根目录
-    OUTPUT_BASE_DIR = r"H:\DICOM\202607\2026-07-lung-nifti"  # 转换后的 NIfTI 输出目录
+    INPUT_BASE_DIR = "dicom_input"  # 患者文件夹所在的根目录
+    OUTPUT_BASE_DIR = "nifti_output"  # 转换后的 NIfTI 输出目录
     
     batch_process_dicom_folders(INPUT_BASE_DIR, OUTPUT_BASE_DIR)

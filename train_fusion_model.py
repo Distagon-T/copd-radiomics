@@ -11,10 +11,10 @@ train_fusion_model.py
 
 用法:
   python train_fusion_model.py \
-      --radiomics E:\\DICOM\\2026-04-seg-part1\\radiomics_all_patients.csv \
-      --airquant  E:\\DICOM\\2026-04-seg-part1\\airquant_patient_aggregated.csv \
-      --labels    E:\\DICOM\\2026-04-seg-part1\\patient_cvd_labels.csv \
-      --outdir    E:\\DICOM\\2026-04-seg-part1
+      --radiomics radiomics_all_patients.csv \
+      --airquant  airquant_patient_aggregated.csv \
+      --labels    patient_cvd_labels.csv \
+      --outdir    <output_dir>
 """
 import argparse
 import sys

@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score
 
-df = pd.read_csv(r"E:\DICOM\2026-05-seg\radiomics_2026_05_features.csv")
-aq = pd.read_csv(r"E:\DICOM\2026-05-seg\airquant_2026_05_aggregated.csv").rename(
+df = pd.read_csv("radiomics_2026_05_features.csv")
+aq = pd.read_csv("airquant_2026_05_aggregated.csv").rename(
     columns={"patient": "Patient_ID"})
-lab = pd.read_csv(r"E:\DICOM\2026-05-seg\labels_2026_05.csv")
+lab = pd.read_csv("labels_2026_05.csv")
 if "Patient_ID" in lab.columns:
     lab = lab.drop(columns=["Patient_ID"])
 m = df.merge(lab.rename(columns={"patient_id": "PatientID"}), on="PatientID",

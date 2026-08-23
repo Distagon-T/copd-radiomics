@@ -24,7 +24,7 @@ from sklearn.metrics import roc_auc_score
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from train_fusion_model import load_and_join, select_features
 
-SEG = r"E:\DICOM\2026-05-seg"
+SEG = "seg_results"
 FIGDIR = os.path.join(SEG, "figs")
 os.makedirs(FIGDIR, exist_ok=True)
 

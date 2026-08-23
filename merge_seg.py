@@ -44,7 +44,7 @@ def merge_masks_for_visualization(mask_dir, output_file):
 # ================= 运行区 =================
 if __name__ == "__main__":
     # 替换为你某一个病人的掩膜文件夹路径
-    MASK_FOLDER = r"D:\copd-radiomics\seg_results\patient_01_masks" 
-    OUTPUT_MERGED = r"D:\copd-radiomics\seg_results\patient_01_merged_color.nii.gz"
+    MASK_FOLDER = "seg_results/patient_01_masks" 
+    OUTPUT_MERGED = "seg_results/patient_01_merged_color.nii.gz"
     
     merge_masks_for_visualization(MASK_FOLDER, OUTPUT_MERGED)

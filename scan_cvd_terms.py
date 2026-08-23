@@ -6,7 +6,7 @@ import os
 
 import pandas as pd
 
-OUT = open(r"E:\DICOM\2026-04-seg-part1\cvd_scan.log", "w", encoding="utf-8")
+OUT = open("cvd_scan.log", "w", encoding="utf-8")
 
 
 def log(*a):
@@ -16,14 +16,14 @@ def log(*a):
     OUT.flush()
 
 
-cache = r"E:\DICOM\2026-04-seg-part1\clinical_80_cache.pkl"
+cache = "clinical_80_cache.pkl"
 if os.path.exists(cache):
     log("[使用缓存 clinical_80_cache.pkl]")
     sub = pd.read_pickle(cache)
 else:
     log("[缓存不存在，读 xlsx]")
-    df = pd.read_excel(r'D:\copd-radiomics\Asthma.xlsx')
-    radi = pd.read_csv(r'E:\DICOM\2026-04-seg-part1\radiomics_all_patients.csv',
+    df = pd.read_excel('Asthma.xlsx')
+    radi = pd.read_csv('radiomics_all_patients.csv',
                        dtype={'PatientID': str})
     ids = set(radi['PatientID'].astype(str).str.lstrip('0'))
     sub = df[df['患者id'].astype(str).str.lstrip('0').isin(ids)].copy()
