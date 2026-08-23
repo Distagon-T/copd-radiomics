@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pyo
+wheelhouse/
+weights/
+_selftest*.py
+_selftest*.log

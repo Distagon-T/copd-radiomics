@@ -1,0 +1,74 @@
+# ============ Python / 缓存 ============
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+build/
+dist/
+
+# ============ 数据与输出（不入库） ============
+seg_results/
+Airway_out/
+Airway_out_batch/
+ct_sourceX/
+test2/
+tests/test_data/
+tests/test_output/
+
+# ============ conda 环境（字面目录名遗留） ============
+%CONDA_PREFIX%/
+.conda/
+
+# ============ 临床 / 表格数据 ============
+*.xlsx
+*.xls
+*.csv
+
+# ============ 医学影像 / 中间数组 ============
+*.nii
+*.nii.gz
+*.nrrd
+*.mha
+*.dcm
+*.npy
+*.npz
+
+# ============ 模型权重 ============
+*.pth
+*.pt
+*.onnx
+*.h5
+*.hdf5
+*.ckpt
+weights/
+checkpoints/
+
+# ============ 第三方独立仓库（子目录克隆，不随本项目发布） ============
+AirMorph/
+AirQuant/
+Connectivity-Aware-Airway-Segmentaion/
+MurineAirwaySegmentation/
+pulmonary-tree-labeling/
+PTKskel/
+mac_airway_seg/
+mac_pyradiomics/
+mac_radiomics_seg/
+
+# ============ Docker 构建上下文（保留源码，排除权重） ============
+docker-airway-seg/weights/
+docker-radiomics-full/weights/
+docker-radiomics-seg/weights/
+
+# ============ 日志 / 临时 / 杂项 ============
+*.log
+*.tmp
+*.pdf
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

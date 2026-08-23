@@ -1,0 +1,14 @@
+# 排除不需要复制进构建上下文的文件
+.git
+.idea
+__pycache__
+*.pyc
+*.log
+sample
+sample_out
+tests
+examples
+challenge_solution
+figs
+data
+# 保留的: code/  weights/  scripts/  requirements.txt  Dockerfile  run_segmentation.py
