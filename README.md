@@ -1,148 +1,150 @@
-# COPD 心肺影像表型分析与心肺事件智能预测
+# COPD Cardiopulmonary Imaging Phenotyping & Risk Prediction
 
-面向慢性气道疾病（慢阻肺 / 支气管扩张 / 哮喘）的胸部 CT 影像表型分析与心肺事件风险预测研究。本仓库实现了从 **CT 图像分割 → 影像组学 / 结构-功能特征提取 → 多模态融合建模 → 可解释报告** 的完整计算管线，是北京市自然科学基金-大兴创新联合基金重点项目 *L256014「融合心肺影像与多维临床特征的慢性气道疾病患者心肺事件智能预测模型研究」* 的算法实现与数据分析部分。
+A chest CT imaging phenotyping and cardiopulmonary-event risk prediction study for chronic airway diseases (COPD / bronchiectasis / asthma). This repository implements the full computational pipeline from **CT image segmentation → radiomics & structural–functional feature extraction → multimodal fusion modeling → explainable reporting**, and is the algorithmic implementation and data-analysis component of the Beijing Natural Science Foundation – Daxing Joint Innovation Fund key project *L256014 "Integrating Cardiopulmonary Imaging with Multidimensional Clinical Features to Predict Cardiopulmonary Events in Patients with Chronic Airway Disease"*.
 
-## 项目背景与目的
+> **中文版**: see [README.zh-CN.md](README.zh-CN.md)
 
-慢性气道疾病患者常合并较高的心血管事件与严重呼吸系统不良事件（合称**心肺事件**）风险，而现有风险评估工具的准确性有限。胸部 CT 蕴含肺、气道、心脏与大血管的丰富结构与功能信息，但尚缺大规模、自动化的定量分析方法。
+## Background & Aims
 
-本项目旨在：
+Patients with chronic airway disease carry an elevated risk of cardiovascular events and severe respiratory adverse events (collectively, **cardiopulmonary events**), yet existing risk-assessment tools have limited accuracy. Chest CT encodes rich structural and functional information about the lungs, airways, heart, and great vessels, but large-scale automated quantitative analysis is still lacking.
 
-- **构建多模态数据库**：整合胸部 CT 影像、肺功能、实验室检验、用药与人口学等多维临床表型及心肺事件结局；
-- **自动高通量影像标志物提取**：从胸部 CT 精准分割肺-心-血管结构，自动量化肺气肿负荷、小气道重塑、肺血管重构、心脏体积与冠脉钙化等指标，并提取高维影像组学特征；
-- **多模态融合建模**：融合影像标志物与临床指标，构建静态与动态心肺事件风险预测模型，实现个体化风险分层；
-- **可解释与临床转化**：以可解释分析（特征贡献、SHAP）支撑临床决策，最终封装为可嵌入 HIS/EMR 的心肺风险评估智能体。
+This project aims to:
 
-本仓库覆盖其中的核心计算管线：**影像分割 → 特征提取 → 建模评估 → 报告生成**。
+- **Build a multimodal database** integrating chest CT imaging, pulmonary function, laboratory tests, medication, demographics, and cardiopulmonary-event outcomes;
+- **Automatically extract high-throughput imaging biomarkers** — precisely segmenting lung–heart–vascular structures from chest CT and quantifying emphysema burden, small-airway remodeling, pulmonary vascular remodeling, cardiac volumes, and coronary calcium, alongside high-dimensional radiomic features;
+- **Multimodal fusion modeling** combining imaging biomarkers with clinical indicators to build static and dynamic cardiopulmonary-event risk prediction models for individualized risk stratification;
+- **Explainability & clinical translation** — supporting clinical decisions with interpretable analysis (feature contributions, SHAP), ultimately packaged as a cardiopulmonary risk-assessment agent embeddable in HIS/EMR.
 
-## 技术路线
+This repository covers the core computational pipeline: **segmentation → feature extraction → modeling & evaluation → report generation**.
+
+## Pipeline
 
 ```mermaid
 flowchart TD
-    A[胸部 CT 影像<br/>DICOM / NIfTI] --> B[CT 分割<br/>TotalSegmentator 三引擎级联]
-    B --> C[16 个靶区掩膜<br/>肺叶 · 气道 · 血管 · 心脏]
-    C --> D[影像组学特征<br/>PyRadiomics 多维定量特征]
-    C --> E[COPD 结构-功能表型<br/>肺叶气肿 · 气道-肺叶耦合 · 心肺 · 膈肌]
-    C --> F[肺血管高级特征<br/>Vessel_* 分支 / 密度 / 迂曲 / 分形]
-    B --> G[气道三维建模与量化<br/>AirQuant · Pi10 · 壁厚 · FWHM]
-    D & E & F & G --> H[特征筛选与多模态融合<br/>LASSO / 单变量 / 多模型]
-    H --> I[模型评估<br/>分层 K 折交叉验证 · bootstrap · SHAP]
-    I --> J[报告生成<br/>ROC · 单变量表 · 森林图 · 校准曲线]
+    A[Chest CT<br/>DICOM / NIfTI] --> B[CT Segmentation<br/>TotalSegmentator 3-engine cascade]
+    B --> C[16 target masks<br/>lobes · airways · vessels · heart]
+    C --> D[Radiomic features<br/>PyRadiomics multidimensional features]
+    C --> E[COPD structural–functional phenotypes<br/>lobar emphysema · airway–lobe coupling · cardiopulmonary · diaphragm]
+    C --> F[Advanced pulmonary vessel features<br/>Vessel_* branching / density / tortuosity / fractal]
+    B --> G[3D airway modeling & quantification<br/>AirQuant · Pi10 · wall thickness · FWHM]
+    D & E & F & G --> H[Feature selection & multimodal fusion<br/>LASSO / univariate / multiple models]
+    H --> I[Model evaluation<br/>stratified K-fold CV · bootstrap · SHAP]
+    I --> J[Report generation<br/>ROC · univariate tables · forest plots · calibration]
 ```
 
-## 方法
+## Methods
 
-### 1. 影像分割（CT Segmentation）
+### 1. CT Segmentation
 
-对每位患者的胸部 CT 进行全自动多结构分割，采用 **TotalSegmentator** 三引擎级联，输出 16 个「黄金靶区」：
+Fully automatic multi-structure segmentation of each patient's chest CT using a **TotalSegmentator** three-engine cascade, producing 16 "golden" targets:
 
-- **肺部宏观结构（5）**：左肺上/下叶、右肺上/中/下叶
-- **肺部微观结构（2）**：肺血管网、气管-支气管树
-- **大血管与气管干（3）**：主动脉、肺动脉、气管
-- **心脏（6）**：整体心脏、心肌、左/右心房、左/右心室
+- **Lung macrostructure (5)**: left upper/lower lobes, right upper/middle/lower lobes
+- **Lung microstructure (2)**: pulmonary vasculature, tracheobronchial tree
+- **Great vessels & trachea (3)**: aorta, pulmonary artery, trachea
+- **Heart (6)**: whole heart, myocardium, left/right atria, left/right ventricles
 
-分割结果经统一命名与校验（`<患者>_masks/`），并记录分割信息 JSON（含选中序列、层数、体素间距等），支持**断点续传**与失败重跑。
+Segmentation outputs are uniformly named and validated (`<patient>_masks/`), with a segmentation-info JSON recording the selected series, slice count, voxel spacing, etc., supporting **resume from interruption** and re-runs after failure.
 
-### 2. 影像组学特征（PyRadiomics）
+### 2. Radiomic Features (PyRadiomics)
 
-对每个靶区使用标准化后处理流程（**PyRadiomics** 平台）提取多维定量特征：
+For each target region, multidimensional quantitative features are extracted with a standardized post-processing workflow (**PyRadiomics**):
 
-- **一阶灰度统计**（first order）：强度分布统计量
-- **形状特征**（shape）：体积、表面积、最大径、致密性等几何形态
-- **纹理特征**（texture）：灰度共生矩阵（GLCM）、灰度游程矩阵（GLRLM）、灰度大小区域矩阵（GLSZM）、灰度依赖矩阵（GLDM）、邻域灰度差分矩阵（NGTDM）
-- **滤波特征**：小波（wavelet）、拉普拉斯高斯（LoG）等
+- **First-order statistics**: intensity-distribution statistics
+- **Shape features**: volume, surface area, maximum diameter, compactness, etc.
+- **Texture features**: gray-level co-occurrence matrix (GLCM), gray-level run-length matrix (GLRLM), gray-level size-zone matrix (GLSZM), gray-level dependence matrix (GLDM), neighboring gray-tone difference matrix (NGTDM)
+- **Filtered features**: wavelet, Laplacian-of-Gaussian (LoG), etc.
 
-同时进行特征标准化、归一化与重复性筛选，保证输入特征的高稳定性与可解释性。
+Features are standardized, normalized, and screened for reproducibility to ensure high stability and interpretability.
 
-### 3. COPD 结构-功能表型指标
+### 3. COPD Structural–Functional Phenotype Metrics
 
-在影像组学之外，针对 COPD 临床表型构建四类可解释的结构-功能指标：
+Beyond radiomics, four classes of interpretable structural–functional metrics target COPD clinical phenotypes:
 
-| 类别 | 指标 | 临床意义 |
+| Category | Metrics | Clinical meaning |
 |---|---|---|
-| 肺叶气肿 | 各肺叶 LAA-950%、Perc15、气肿容积 | 肺气肿负荷与分布 |
-| 气道-肺叶耦合 | 各肺叶内气道容积占比 | 小气道病变与气流受限 |
-| 心肺结构 | 肺动脉/主动脉直径比、右室/左室容积比、CAC 冠脉钙化容积 | 肺心病与冠脉负荷 |
-| 膈肌形态 | 底部层面膈肌扁平化填充比 | 过度充气与膈肌功能 |
+| Lobar emphysema | per-lobe LAA-950%, Perc15, emphysema volume | emphysema burden & distribution |
+| Airway–lobe coupling | airway volume fraction per lobe | small-airway disease & airflow limitation |
+| Cardiopulmonary structure | pulmonary/aorta diameter ratio, RV/LV volume ratio, CAC coronary calcium volume | cor pulmonale & coronary burden |
+| Diaphragm morphology | diaphragm flattening fill ratio at basal slice | hyperinflation & diaphragm function |
 
-### 4. 气道量化（AirQuant / MATLAB）
+### 4. Airway Quantification (AirQuant / MATLAB)
 
-基于分割出的气管-支气管树进行三维建模与逐代量化：
+Three-dimensional modeling and generation-wise quantification of the segmented tracheobronchial tree:
 
-- **形态学**：管壁面积百分比（WA%）、壁厚、内/外径、**Pi10** 等
-- **T/D 变化**：跨代 T/D 比值突变（标准差 / CV / 斜率 / 离群率），刻画气道重塑的不均质性
-- **FWHM 边界模糊**：基于半峰宽的管壁密度与边界锐度测量，刻画泛气道急性炎症重塑
-- **PCA 异质性**：跨气道树特征矩阵的主成分异质性
+- **Morphology**: wall-area percentage (WA%), wall thickness, inner/outer diameter, **Pi10**, etc.
+- **T/D changes**: cross-generation T/D ratio variation (std / CV / slope / outlier rate), reflecting heterogeneity of airway remodeling
+- **FWHM boundary blur**: half-maximum-width-based wall density and boundary-sharpness measures, capturing pan-airway acute inflammatory remodeling
+- **PCA heterogeneity**: principal-component heterogeneity of the feature matrix across the airway tree
 
-### 5. 肺血管高级特征（Vessel_*）
+### 5. Advanced Pulmonary Vessel Features (Vessel_*)
 
-为替代高耗时、低特异性的血管 shape 特征，设计了一组极速、可解释的肺血管网络特征：
+To replace the slow, low-specificity vessel shape features, a set of fast, interpretable pulmonary-vascular-network features was designed:
 
-| 特征 | 含义 |
+| Feature | Meaning |
 |---|---|
-| `Vessel_Fractal_Dim` | 3D 计盒分形维度（血管网复杂度） |
-| `Vessel_BV5_pct` / `Vessel_BV10_pct` | 截面积 <5/10 mm² 小血管血容量占比（基于距离变换半径阈值） |
-| `Vessel_Skeleton_Voxels` / `_Length_mm` | 血管树中心线体素数 / 长度 |
-| `Vessel_Branch / Junction / Endpoint_Count` | 分支数 / 分叉点数 / 端点数 |
-| `Vessel_Branching_Density_per_mm` | 分支点密度 |
-| `Vessel_Tortuosity_Mean / _Max` | 迂曲度（弧长 / 直线距离） |
+| `Vessel_Fractal_Dim` | 3D box-counting fractal dimension (vascular complexity) |
+| `Vessel_BV5_pct` / `Vessel_BV10_pct` | blood-volume fraction of small vessels with cross-section <5/10 mm² (distance-transform radius thresholds) |
+| `Vessel_Skeleton_Voxels` / `_Length_mm` | centerline voxel count / length of the vascular tree |
+| `Vessel_Branch / Junction / Endpoint_Count` | branch / bifurcation / endpoint counts |
+| `Vessel_Branching_Density_per_mm` | bifurcation density |
+| `Vessel_Tortuosity_Mean / _Max` | tortuosity (arc length / straight-line distance) |
 
-### 6. 建模与评估
+### 6. Modeling & Evaluation
 
-- **特征筛选**：单变量分析（AUC / 效应量）+ LASSO 正则化 + 相关性去冗余（r > 0.9）
-- **模型**：以 **Logistic 回归** 融合模型为主干，可扩展至 XGBoost / 随机森林等；按临床任务分层
-- **验证**：分层 **K 折交叉验证**，报告 AUC / 灵敏度 / 特异度 / 校准
-- **稳健性**：**bootstrap** 重采样评估特征与模型的一致性（森林图）
-- **可解释性**：特征系数、单变量贡献与 SHAP 分析
+- **Feature selection**: univariate analysis (AUC / effect size) + LASSO regularization + correlation-based de-redundancy (r > 0.9)
+- **Models**: logistic-regression fusion model as the backbone, extensible to XGBoost / random forest; stratified by clinical task
+- **Validation**: stratified **K-fold cross-validation**, reporting AUC / sensitivity / specificity / calibration
+- **Robustness**: **bootstrap** resampling to assess feature and model consistency (forest plots)
+- **Interpretability**: feature coefficients, univariate contributions, and SHAP analysis
 
-## 分析任务
+## Analysis Tasks
 
-当前管线已用于以下临床判别任务：
+The pipeline has been applied to the following clinical discrimination tasks:
 
-| 任务 | 说明 |
+| Task | Description |
 |---|---|
-| COPD 急性加重 vs 稳定期 | 纯 COPD 患者急性加重表型判别 |
-| BCOS 表型 | 慢阻肺合并支气管扩张 vs 单纯慢阻肺 |
-| 支扩咯血 | 支气管扩张伴咯血 vs 无咯血 |
-| 急慢性气道炎症 | 基于文本诊断关键词的急性 vs 稳定 |
-| 心肺事件相关特征关联 | 肺血管 / 气道 / 钙化等标志物的临床关联 |
+| COPD exacerbation vs stable | acute-exacerbation phenotype discrimination in pure COPD |
+| BCOS phenotype | COPD with bronchiectasis vs pure COPD |
+| Bronchiectasis hemoptysis | bronchiectasis with vs without hemoptysis |
+| Acute vs chronic airway inflammation | acute vs stable from text-based diagnostic keywords |
+| Cardiopulmonary-event feature associations | clinical associations of vascular / airway / calcium biomarkers |
 
-各任务统一输出 Markdown / HTML 报告（ROC 曲线、单变量表、bootstrap 一致性森林图等）。
+Each task uniformly outputs Markdown / HTML reports (ROC curves, univariate tables, bootstrap-consistency forest plots, etc.).
 
-## 目录结构
+## Repository Layout
 
 ```
 .
-├── 分析脚本/           # 批量分割、特征提取、建模、报告等 Python / MATLAB 脚本
-├── AirQuant/           # 气道量化库（第三方，含自定义量化脚本）
-├── Connectivity-Aware-Airway-Segmentaion/  # 气道分割模型（第三方，含批量推理）
-├── pulmonary-tree-labeling/                # 支气管树标记（第三方）
-├── AirMorph/            # 气道形态分析（第三方）
-├── docker-airway-seg/   # 容器化部署：气道分割
-├── docker-radiomics-seg/    # 容器化部署：分割 + 影像组学（快速版）
-├── docker-radiomics-full/   # 容器化部署：分割 + 影像组学（全量版）
-├── tests/               # 测试用例（含小型匿名测试数据）
+├── analysis scripts/     # Python / MATLAB scripts for batch segmentation, feature extraction, modeling, reports
+├── AirQuant/             # airway-quantification library (third-party, with custom quantification scripts)
+├── Connectivity-Aware-Airway-Segmentaion/  # airway-segmentation model (third-party, with batch inference)
+├── pulmonary-tree-labeling/                # bronchial-tree labeling (third-party)
+├── AirMorph/             # airway-morphology analysis (third-party)
+├── docker-airway-seg/    # containerized deployment: airway segmentation
+├── docker-radiomics-seg/     # containerized deployment: segmentation + radiomics (fast)
+├── docker-radiomics-full/    # containerized deployment: segmentation + radiomics (full)
+├── tests/                # test cases (with small anonymized test data)
 └── README.md
 ```
 
-> 数据、模型权重与第三方子仓库不随本仓库分发，请根据实际部署环境另行准备。
+> Data, model weights, and third-party sub-repositories are not distributed with this repository; please prepare them for your deployment environment.
 
-## 环境依赖
+## Dependencies
 
-- **Python 3.10**：pyRadiomics 3.0.1、SimpleITK、scikit-image、scipy、numpy、pandas、scikit-learn、matplotlib、edt、nibabel、TotalSegmentator
-- **MATLAB**：AirQuant 气道量化（可选）
-- **PyTorch + CUDA**：气道 / 心脏深度学习分割模型（可选，GPU 加速）
+- **Python 3.10**: PyRadiomics 3.0.1, SimpleITK, scikit-image, SciPy, NumPy, pandas, scikit-learn, matplotlib, edt, nibabel, TotalSegmentator
+- **MATLAB**: AirQuant airway quantification (optional)
+- **PyTorch + CUDA**: deep-learning segmentation of airways / heart (optional, GPU-accelerated)
 
-## 工程要点（经验）
+## Engineering Notes
 
-- 大容积 3D 计算注意内存：距离变换用 `edt`（float32）而非 scipy float64；分形 boxcount 用 int32；避免 scipy `ndi.convolve` 3D 大缓冲分配。
-- 特征筛选需防止**标签泄漏**：标签列须大小写不敏感地排除出特征集。
-- nibabel / PyRadiomics 输出的 numpy 类型需先转换为 Python 原生类型再序列化 JSON。
+- Mind memory usage in large 3D computations: use `edt` (float32) instead of SciPy float64 for distance transforms; use int32 for fractal box-counting; avoid large-buffer 3D `scipy.ndimage.convolve` allocations.
+- Prevent **label leakage** during feature selection: exclude the label column case-insensitively.
+- Convert NumPy types from nibabel / PyRadiomics to native Python types before JSON serialization.
 
-## 引用与致谢
+## Citation & Acknowledgement
 
-本工作受北京市自然科学基金-大兴创新联合基金重点项目 **L256014（融合心肺影像与多维临床特征的慢性气道疾病患者心肺事件智能预测模型研究）** 支持。
+This work is supported by the Beijing Natural Science Foundation – Daxing Joint Innovation Fund key project **L256014 (Integrating Cardiopulmonary Imaging with Multidimensional Clinical Features to Predict Cardiopulmonary Events in Patients with Chronic Airway Disease)**.
 
 ---
 
-**免责声明**：本仓库仅包含算法与代码实现，不含患者隐私数据；医学影像数据需在符合伦理与数据安全要求的条件下使用。
+**Disclaimer**: This repository contains algorithms and code only, with no patient privacy data; medical imaging data must be used in compliance with ethics and data-security requirements.
