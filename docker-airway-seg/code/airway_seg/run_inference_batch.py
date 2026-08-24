@@ -31,6 +31,8 @@ def parse_args():
     p.add_argument("--device", "-d", default=None, help="Override device (e.g. cpu or cuda:0)")
     p.add_argument("--recursive", "-r", action="store_true",
                    help="递归搜索患者子文件夹（默认只处理 input-dir 直接子目录）")
+    p.add_argument("--patients", default=None,
+                   help="只处理指定患者（逗号分隔），默认全部")
     return p.parse_args()
 
 
@@ -124,6 +126,10 @@ def main():
     model = AirwayExtractionModel()
 
     patient_dirs = find_patient_dirs(input_dir, args.recursive)
+    if args.patients:
+        wanted = set(args.patients.split(","))
+        patient_dirs = [d for d in patient_dirs if d.name in wanted]
+        print(f"🎯 指定患者过滤: {len(patient_dirs)} 个")
     if not patient_dirs:
         print(f"No patient folders found in {input_dir}")
         return

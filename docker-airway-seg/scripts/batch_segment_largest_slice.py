@@ -155,7 +155,7 @@ def process_patient(patient_folder_path, patient_name, output_base_dir):
         return False, info
 
 
-def batch_segment_largest_slice(input_base_dir, output_base_dir):
+def batch_segment_largest_slice(input_base_dir, output_base_dir, patients=None):
     print("🚀 启动「层数最多 NIfTI」批量分割流水线...")
     print(f"输入目录: {input_base_dir}")
     print(f"输出目录: {output_base_dir}\n")
@@ -164,6 +164,10 @@ def batch_segment_largest_slice(input_base_dir, output_base_dir):
         [d for d in os.listdir(input_base_dir)
          if os.path.isdir(os.path.join(input_base_dir, d))]
     )
+    if patients:
+        wanted = set(patients)
+        patient_folders = [d for d in patient_folders if d in wanted]
+        print(f"🎯 指定患者过滤: {len(patient_folders)} 个")
 
     if not patient_folders:
         print(f"❌ 在 {input_base_dir} 目录下没有找到任何患者文件夹，请检查路径！")
@@ -221,6 +225,9 @@ if __name__ == "__main__":
                         help="患者 NIfTI 文件夹所在目录（已由 dcm2nii_batch_arg.py 生成）")
     parser.add_argument("-o", "--output", default="seg_output",
                         help="分割结果输出目录")
+    parser.add_argument("--patients", default=None,
+                        help="只处理指定患者（逗号分隔），默认全部")
     args = parser.parse_args()
 
-    batch_segment_largest_slice(args.input, args.output)
+    wanted = args.patients.split(",") if args.patients else None
+    batch_segment_largest_slice(args.input, args.output, wanted)

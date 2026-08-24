@@ -18,6 +18,7 @@ import os
 import sys
 import json
 import time
+import argparse
 from multiprocessing import Pool
 
 import numpy as np
@@ -81,9 +82,13 @@ def _save_cache(cache):
         json.dump(cache, f, ensure_ascii=False)
 
 
-def main():
+def main(patients_filter=None):
     patients = sorted(p for p in os.listdir(NIFTI)
                       if os.path.isdir(os.path.join(NIFTI, p)))
+    if patients_filter:
+        wanted = set(patients_filter)
+        patients = [p for p in patients if p in wanted]
+        print(f"🎯 指定患者过滤: {len(patients)} 个")
     print(f"nifti 患者总数: {len(patients)}")
 
     cache = {}
@@ -141,4 +146,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="批量肺血管高级特征 (Vessel_*)")
+    parser.add_argument("--patients", default=None,
+                        help="只处理指定患者（逗号分隔），默认全部")
+    args = parser.parse_args()
+    wanted = args.patients.split(",") if args.patients else None
+    main(wanted)
