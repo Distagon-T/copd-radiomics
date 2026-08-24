@@ -1,0 +1,13 @@
+# Mac 版依赖（pyradiomics 纯 CPU，无 CUDA 依赖）
+# 注意：TotalSegmentator 在 Mac 上走 CPU（无 CUDA），可选安装
+numpy>=1.24,<2
+SimpleITK==2.4.1
+nibabel==5.3.2
+pandas>=2.0
+scipy>=1.11
+pyradiomics==3.0.1
+scikit-image>=0.22
+edt>=2.3
+
+# --- 可选：TotalSegmentator 分割（Mac CPU，较慢；只用已有掩膜可跳过） ---
+# TotalSegmentator==2.13.0
