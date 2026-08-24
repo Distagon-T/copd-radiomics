@@ -28,6 +28,164 @@ import numpy as np
 import SimpleITK as sitk
 from radiomics import featureextractor
 import logging
+import scipy.ndimage as ndi
+from skimage.morphology import skeletonize
+
+
+# =========================================================================
+# 肺血管高级特征（替代慢速 shape）：分形维度 / BV5-BV10 / 中心线图论
+# =========================================================================
+def vessel_fractal_dimension(mask):
+    """3D 计盒分形维度（box-counting），量化血管网空间复杂度/密集度。
+    COPD 远端毛细血管床修剪(pruning) -> 维度下降；咯血畸形增生 -> 维度上升。"""
+    mask = np.asarray(mask, dtype=bool)
+    if int(mask.sum()) == 0:
+        return np.nan
+    p = int(min(mask.shape))
+    if p < 4:
+        return np.nan
+    n = int(2 ** np.floor(np.log2(p)))
+    sizes = 2 ** np.arange(int(np.log2(n)), 1, -1)   # 盒子尺寸：2 的幂次递减
+
+    def boxcount(Z, k):
+        k = int(k)
+        Zi = Z.astype(np.int32)                       # int32 省内存
+        S = np.add.reduceat(
+            np.add.reduceat(
+                np.add.reduceat(Zi, np.arange(0, Z.shape[0], k), axis=0),
+                np.arange(0, Z.shape[1], k), axis=1),
+            np.arange(0, Z.shape[2], k), axis=2)
+        return int(np.count_nonzero(S))              # 含血管的盒子数
+
+    counts = np.array([boxcount(mask, s) for s in sizes], dtype=float)
+    valid = counts > 0
+    if int(valid.sum()) < 3:
+        return np.nan
+    coeffs = np.polyfit(np.log(sizes[valid]), np.log(counts[valid]), 1)
+    return float(-coeffs[0])
+
+
+def vessel_bv5_bv10(mask, spacing):
+    """BV5/BV10：小血管血容量占比。截面积 <5mm² 与 <10mm² 的血管体积占全血管体积 %。
+    用 3D 距离变换估计局部半径 r = edt * px；r < sqrt(5/pi)=1.26mm 对应 BV5。"""
+    out = {}
+    mask = np.asarray(mask, dtype=bool)
+    total = int(mask.sum())
+    if total == 0:
+        out['Vessel_BV5_pct'] = np.nan
+        out['Vessel_BV10_pct'] = np.nan
+        return out
+    try:
+        import edt as _edt
+        edt = _edt.edt(mask.astype(np.uint8), parallel=1).astype(np.float32)
+    except Exception:
+        edt = ndi.distance_transform_edt(mask).astype(np.float32)  # 体素单位
+    px = float(min(spacing[0], spacing[1]))            # 轴向平面分辨率（血管截面在平面内）
+    r_mm = edt * px
+    thr5 = float(np.sqrt(5.0 / np.pi))                 # ≈1.2616 mm
+    thr10 = float(np.sqrt(10.0 / np.pi))               # ≈1.7841 mm
+    r_vessel = r_mm[mask]
+    out['Vessel_BV5_pct'] = float(np.count_nonzero(r_vessel < thr5) / total * 100.0)
+    out['Vessel_BV10_pct'] = float(np.count_nonzero(r_vessel < thr10) / total * 100.0)
+    return out
+
+
+def vessel_graph_features(mask, spacing):
+    """中心线（骨架）图论特征：迂曲度 + 分支点密度。
+    skimage.skeletonize 提骨架(3D自动分派) -> 26 邻域计数分叉点/端点 -> 去分叉点分段求迂曲度。"""
+    out = {}
+    mask = np.asarray(mask, dtype=bool)
+    if int(mask.sum()) == 0:
+        return out
+    skel = skeletonize(mask)
+    n_skel = int(skel.sum())
+    out['Vessel_Skeleton_Voxels'] = n_skel
+    if n_skel == 0:
+        return out
+
+    # 26 邻域计数（中心点自身不计；用 26 偏移逐点求和，避免 scipy 卷积 3x 缓冲 OOM）
+    pad = np.pad(skel, 1, mode='constant')              # 布尔，+1 边框 False
+    nbr = np.zeros(skel.shape, dtype=np.uint8)
+    for dz in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if dz == 0 and dy == 0 and dx == 0:
+                    continue
+                nbr += pad[1+dz:1+dz+skel.shape[0],
+                           1+dy:1+dy+skel.shape[1],
+                           1+dx:1+dx+skel.shape[2]]
+    nbr = nbr * skel.astype(np.uint8)                    # 只保留骨架体素
+    junctions = nbr >= 3
+    n_junc = int(junctions.sum())
+    out['Vessel_Junction_Count'] = n_junc
+    out['Vessel_Endpoint_Count'] = int((nbr == 1).sum())
+
+    # 去掉分叉点，分割成分支段（26 连通）
+    seg_mask = skel & (~junctions)
+    lbl, nseg = ndi.label(seg_mask, structure=np.ones((3, 3, 3), dtype=bool))
+    out['Vessel_Branch_Count'] = int(nseg)
+
+    spacing = np.asarray(spacing, dtype=float)
+    voxel_len = float(np.mean(spacing))                # 骨架单步长度(mm)近似
+    skel_len_mm = n_skel * voxel_len
+    out['Vessel_Skeleton_Length_mm'] = float(skel_len_mm)
+    out['Vessel_Branching_Density_per_mm'] = (float(n_junc / skel_len_mm)
+                                              if skel_len_mm > 0 else np.nan)
+
+    # 高效分组：只取骨架(段)体素小数组，按标签排序后 split（避免 O(段数 x 容积)）
+    seg_coords = np.argwhere(seg_mask)                  # (N,3) zyx，仅段体素
+    seg_lbls = lbl[seg_mask]
+    order = np.argsort(seg_lbls, kind='stable')
+    sorted_coords = seg_coords[order]
+    sorted_lbls = seg_lbls[order]
+    if len(sorted_lbls) and sorted_lbls[0] == 0:        # 剔除可能的背景标签
+        cut = np.searchsorted(sorted_lbls, 1)
+        sorted_coords = sorted_coords[cut:]
+        sorted_lbls = sorted_lbls[cut:]
+    split = np.flatnonzero(np.diff(sorted_lbls)) + 1
+    groups = np.split(sorted_coords, split) if len(split) else [sorted_coords]
+
+    torts = []
+    for coords in groups:
+        if len(coords) < 3:
+            continue
+        c = coords.astype(float)
+        cc = c - c.mean(axis=0)
+        _, _, v = np.linalg.svd(cc, full_matrices=False)
+        proj = cc @ v[0]                                # PCA 第一主成分投影
+        p0 = coords[int(np.argmin(proj))]
+        p1 = coords[int(np.argmax(proj))]
+        euclid = float(np.linalg.norm((p1 - p0) * spacing))
+        arc = float(len(coords) * voxel_len)
+        if euclid > 0:
+            torts.append(arc / euclid)
+
+    out['Vessel_Tortuosity_Mean'] = float(np.mean(torts)) if torts else np.nan
+    out['Vessel_Tortuosity_Max'] = float(np.max(torts)) if torts else np.nan
+    return out
+
+
+def vessel_advanced_features(vessels_mask, spacing):
+    """肺血管高级特征总入口：分形维度 + BV5/BV10 + 中心线图论。
+    三组各自独立 try/except：某组失败（如骨架 OOM）不影响其余特征。"""
+    out = {}
+    try:
+        out['Vessel_Fractal_Dim'] = vessel_fractal_dimension(vessels_mask)
+    except Exception:
+        out['Vessel_Fractal_Dim'] = None
+    try:
+        out.update(vessel_bv5_bv10(vessels_mask, spacing))
+    except Exception:
+        out['Vessel_BV5_pct'] = out['Vessel_BV10_pct'] = None
+    try:
+        out.update(vessel_graph_features(vessels_mask, spacing))
+    except Exception:
+        for c in ('Vessel_Skeleton_Voxels', 'Vessel_Skeleton_Length_mm',
+                  'Vessel_Branch_Count', 'Vessel_Junction_Count',
+                  'Vessel_Endpoint_Count', 'Vessel_Branching_Density_per_mm',
+                  'Vessel_Tortuosity_Mean', 'Vessel_Tortuosity_Max'):
+            out[c] = None
+    return out
 
 logging.getLogger('radiomics').setLevel(logging.WARNING)
 sitk.ProcessObject.SetGlobalDefaultNumberOfThreads(0)
@@ -240,4 +398,8 @@ def extract_patient_radiomics(ct_path, mask_dir, patient_name):
     feats.update(cardiopulmonary_features(ct_arr, spacing, mask_arrays))
     feats.update(airway_lobe_coupling(mask_arrays, spacing))
     feats.update(diaphragm_flattening(ct_arr, mask_arrays))
+    # 肺血管高级特征：分形维度 / BV5-BV10 / 中心线迂曲度与分支密度
+    vessel = mask_arrays.get('lung_vessels')
+    if vessel is not None:
+        feats.update(vessel_advanced_features(vessel, spacing))
     return feats
