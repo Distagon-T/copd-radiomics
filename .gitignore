@@ -59,6 +59,9 @@ mac_airway_seg/
 mac_pyradiomics/
 mac_radiomics_seg/
 
+# ============ 打包产物 ============
+mac_packages.zip
+
 # ============ Docker 构建上下文（保留源码，排除权重） ============
 docker-airway-seg/weights/
 docker-radiomics-full/weights/

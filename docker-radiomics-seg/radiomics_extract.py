@@ -190,6 +190,20 @@ LOBE_MAP = {
     'lung_lower_lobe_right': 'RLL',
 }
 
+# 黄金 16 靶区：只对这些掩膜计算特征，忽略其余无关器官
+# （TotalSegmentator 默认输出 ~117 个全器官掩膜，很多在胸部 CT 里是空的或无关）
+KEEP_FILES = [
+    "lung_upper_lobe_left.nii.gz", "lung_lower_lobe_left.nii.gz",
+    "lung_upper_lobe_right.nii.gz", "lung_middle_lobe_right.nii.gz",
+    "lung_lower_lobe_right.nii.gz",
+    "lung_vessels.nii.gz", "lung_trachea_bronchia.nii.gz",
+    "aorta.nii.gz", "pulmonary_artery.nii.gz", "trachea.nii.gz",
+    "heart.nii.gz",
+    "heart_myocardium.nii.gz", "heart_atrium_left.nii.gz",
+    "heart_ventricle_left.nii.gz", "heart_atrium_right.nii.gz",
+    "heart_ventricle_right.nii.gz",
+]
+
 # preCrop: 裁剪到掩膜包围盒再算，大幅加速（心腔/主动脉等小 ROI 提速 5~10x）
 BASE_SETTINGS = {'binWidth': 25, 'force2D': False, 'voxelArrayShift': 1000,
                  'interpolator': sitk.sitkBSpline, 'preCrop': True}
@@ -370,9 +384,11 @@ def extract_patient_radiomics(ct_path, mask_dir, patient_name):
     ct_arr = sitk.GetArrayFromImage(ct_img)
     spacing = ct_img.GetSpacing()
 
-    # 读掩膜
+    # 读掩膜（只保留黄金 16 靶区，忽略 TotalSegmentator 全器官输出里的无关/空掩膜）
     masks = {}
-    mask_files = sorted(f for f in os.listdir(mask_dir) if f.endswith('.nii.gz'))
+    all_mask_files = sorted(f for f in os.listdir(mask_dir) if f.endswith('.nii.gz'))
+    mask_files = [f for f in all_mask_files if f in KEEP_FILES]
+    dropped = len(all_mask_files) - len(mask_files)
     for f in mask_files:
         name = f[:-len('.nii.gz')]
         try:
@@ -380,7 +396,10 @@ def extract_patient_radiomics(ct_path, mask_dir, patient_name):
         except Exception as e:
             print(f"      [warn] 读掩膜失败 {f}: {e}")
     mask_arrays = {k: sitk.GetArrayFromImage(v) for k, v in masks.items()}
-    print(f"  掩膜: {len(mask_arrays)} 个")
+    if dropped > 0:
+        print(f"  掩膜: 共 {len(all_mask_files)} 个，保留黄金靶区 {len(mask_files)} 个（忽略 {dropped} 个无关器官）")
+    else:
+        print(f"  掩膜: {len(mask_files)} 个")
 
     # 1) pyradiomics（串行，内存可控；lung_vessels 只算 firstorder 提速）
     feats = {"Patient_ID": patient_name, "CT_Series": os.path.basename(ct_path)}

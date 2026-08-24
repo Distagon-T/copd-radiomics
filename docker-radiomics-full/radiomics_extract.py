@@ -1,27 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-PyRadiomics 完整特征提取核心（Docker 完整版）
-=============================================
-与 docker-radiomics-seg 的快速版不同，本模块计算【全部耗时特征】：
+PyRadiomics Fast 特征提取核心（Docker/Ubuntu 版）
+=================================================
+特征策略与 Windows compute_patient_radiomics_fast.py 完全一致，跨端列名统一：
 
-  A. PyRadiomics 全特征（每个掩膜）：
-     - 肺叶 (lobe)   : shape + firstorder + 纹理类(GLCM/GLRLM/GLSZM/GLDM/NGTDM)
-                       + LoG 斑点滤波 (sigma=[1.0, 3.0])
+  A. PyRadiomics（每个掩膜）：
+     - 肺叶 (lobe)   : shape + firstorder + 纹理类(GLCM/GLRLM/GLSZM)
+                       + LoG 斑点滤波 (sigma=[1.0])
      - 心肌 (myocardium): 全特征 + Wavelet 高频子带
-     - 其余 ROI      : shape + firstorder + 纹理类
-     - lung_vessels  : 不省略 shape（完整几何特征，最耗时）
-  B. 四类 COPD 表型指标（同快速版）：
+     - 其余 ROI      : shape + firstorder
+     - lung_vessels  : 只算 firstorder（跳过最慢的 shape，改由
+                       vessel_advanced_features 提供分形/BV5-BV10/迂曲度）
+  B. 四类 COPD 表型指标：
      1) 肺叶级肺气肿   (LAA-950% / Perc15 / 体积)
      2) 气道-肺叶耦合  (气道在各肺叶占比)
      3) 心肺共病       (PA/Ao 比值 / RV/LV 容积比 / CAC)
      4) 膈肌形态       (肺底轮廓填充比)
+  C. 肺血管高级特征（11 个 Vessel_*）：分形维度 / BV5-BV10 / 中心线图论
 
-注意：本模块为串行执行，单患者可能耗时 30~40 分钟（尤其 lung_vessels 的
-shape 特征 + 肺叶 LoG/纹理）。适合对特征完整性要求高、可接受长耗时的场景。
-
-若需要快速版（~2 分钟/患者，lung_vessels 只算 firstorder），请用
-docker-radiomics-seg 的 radiomics_extract.py。
+掩膜级多进程并行（--workers），适合 Ubuntu 多核服务器。
 """
 import os
 import numpy as np
@@ -30,6 +28,7 @@ from radiomics import featureextractor
 import logging
 import scipy.ndimage as ndi
 from skimage.morphology import skeletonize
+from multiprocessing import Pool
 
 
 # =========================================================================
@@ -196,6 +195,20 @@ LOBE_MAP = {
     'lung_lower_lobe_right': 'RLL',
 }
 
+# 黄金 16 靶区：只对这些掩膜计算特征，忽略其余无关器官
+# （TotalSegmentator 默认输出 ~117 个全器官掩膜，很多在胸部 CT 里是空的或无关）
+KEEP_FILES = [
+    "lung_upper_lobe_left.nii.gz", "lung_lower_lobe_left.nii.gz",
+    "lung_upper_lobe_right.nii.gz", "lung_middle_lobe_right.nii.gz",
+    "lung_lower_lobe_right.nii.gz",
+    "lung_vessels.nii.gz", "lung_trachea_bronchia.nii.gz",
+    "aorta.nii.gz", "pulmonary_artery.nii.gz", "trachea.nii.gz",
+    "heart.nii.gz",
+    "heart_myocardium.nii.gz", "heart_atrium_left.nii.gz",
+    "heart_ventricle_left.nii.gz", "heart_atrium_right.nii.gz",
+    "heart_ventricle_right.nii.gz",
+]
+
 # preCrop: 裁剪到掩膜包围盒再算（LoG/Wavelet 滤波只在 ROI 附近做）
 BASE_SETTINGS = {'binWidth': 25, 'force2D': False, 'voxelArrayShift': 1000,
                  'interpolator': sitk.sitkBSpline, 'preCrop': True}
@@ -219,21 +232,26 @@ def _to_jsonable(o):
 
 
 def _build_extractor(roi_name):
-    """
-    按 ROI 类型构建完整引擎：
-      - lobe       : 全特征 + LoG(sigma=[1.0,3.0])
-      - myocardium : 全特征 + Wavelet
-      - 其余       : 全特征（含纹理类 + shape + firstorder）
-    说明: 完整版对所有 ROI 都启用全部特征类（GLCM/GLRLM/GLSZM/GLDM/NGTDM），
-          lung_vessels 保留完整 shape（不省略）。
+    """按 ROI 类型构建引擎（与 Windows fast 版完全一致）：
+      - lung_vessels: 只算 firstorder（跳过最慢的 shape，改由 vessel_advanced_features 提供）
+      - myocardium  : 全特征 + Wavelet
+      - lobe        : shape/firstorder/glcm/glrlm/glszm + LoG(sigma=[1.0])
+      - 其余        : shape + firstorder
     """
     ext = featureextractor.RadiomicsFeatureExtractor(**BASE_SETTINGS)
-    ext.enableAllFeatures()
-    if 'myocardium' in roi_name:
+    if 'lung_vessels' in roi_name:
+        ext.disableAllFeatures()
+        ext.enableFeaturesByName(firstorder=[])
+    elif 'myocardium' in roi_name:
+        ext.enableAllFeatures()
         ext.enableImageTypeByName('Wavelet')
     elif 'lobe' in roi_name:
-        ext.enableImageTypeByName('LoG', customArgs={'sigma': [1.0, 3.0]})
-    # 其余 ROI: 只算 Original 图像的全特征（shape+firstorder+纹理）
+        ext.enableAllFeatures()
+        ext.enableFeaturesByName(shape=[], firstorder=[], glcm=[], glrlm=[], glszm=[])
+        ext.enableImageTypeByName('LoG', customArgs={'sigma': [1.0]})
+    else:
+        ext.disableAllFeatures()
+        ext.enableFeaturesByName(shape=[], firstorder=[])
     return ext
 
 
@@ -365,14 +383,36 @@ def diaphragm_flattening(ct_arr, masks):
 # ---------------------------------------------------------------------------
 # 主入口：单患者
 # ---------------------------------------------------------------------------
-def extract_patient_radiomics(ct_path, mask_dir, patient_name):
-    """对一个患者做完整特征提取（全部耗时特征）。"""
+def _worker_pyradiomics(args):
+    """单掩膜 pyRadiomics（供 Pool.map 使用；worker 内读取 CT+掩膜，Linux fork 安全）。"""
+    ct_path, mask_path, roi_name = args
+    try:
+        ct = sitk.ReadImage(ct_path)
+        mask = sitk.ReadImage(mask_path)
+        ext = _build_extractor(roi_name)
+        vec = ext.execute(ct, mask)
+        out = {}
+        for k, v in vec.items():
+            if not k.startswith('diagnostics_'):
+                out[k] = _to_jsonable(v)
+        return out
+    except Exception as e:
+        print(f"      [warn] pyradiomics 失败 {os.path.basename(mask_path)}: {e}")
+        return {}
+
+
+def extract_patient_radiomics(ct_path, mask_dir, patient_name,
+                              workers=min(8, os.cpu_count() or 4)):
+    """对一个患者做特征提取（与 Windows fast 版策略一致，掩膜级多进程并行）。"""
     ct_img = sitk.ReadImage(ct_path)
     ct_arr = sitk.GetArrayFromImage(ct_img)
     spacing = ct_img.GetSpacing()
 
+    # 只保留黄金 16 靶区（忽略 TotalSegmentator 全器官输出里的无关/空掩膜）
     masks = {}
-    mask_files = sorted(f for f in os.listdir(mask_dir) if f.endswith('.nii.gz'))
+    all_mask_files = sorted(f for f in os.listdir(mask_dir) if f.endswith('.nii.gz'))
+    mask_files = [f for f in all_mask_files if f in KEEP_FILES]
+    dropped = len(all_mask_files) - len(mask_files)
     for f in mask_files:
         name = f[:-len('.nii.gz')]
         try:
@@ -380,17 +420,24 @@ def extract_patient_radiomics(ct_path, mask_dir, patient_name):
         except Exception as e:
             print(f"      [warn] 读掩膜失败 {f}: {e}")
     mask_arrays = {k: sitk.GetArrayFromImage(v) for k, v in masks.items()}
-    print(f"  掩膜: {len(mask_arrays)} 个")
+    if dropped > 0:
+        print(f"  掩膜: 共 {len(all_mask_files)} 个，保留黄金靶区 {len(mask_files)} 个（忽略 {dropped} 个无关器官），并行 workers={workers}")
+    else:
+        print(f"  掩膜: {len(mask_files)} 个，并行 workers={workers}")
 
-    # 1) pyradiomics 完整特征（串行）
+    # 1) pyRadiomics：掩膜级多进程并行（worker 内各自读 CT+掩膜，避免跨进程传大数组）
+    jobs = [(ct_path, os.path.join(mask_dir, f), f[:-len('.nii.gz')]) for f in mask_files]
+    if workers > 1 and len(jobs) > 1:
+        with Pool(processes=min(workers, len(jobs))) as pool:
+            results = pool.map(_worker_pyradiomics, jobs)
+    else:
+        results = [_worker_pyradiomics(j) for j in jobs]
+
     feats = {"Patient_ID": patient_name, "CT_Series": os.path.basename(ct_path)}
-    for roi_name, mask_img in masks.items():
-        ext = _build_extractor(roi_name)
-        print(f"    -> {roi_name} ...")
-        roi_feats = _run_pyradiomics(ct_img, mask_img, ext)
+    for (ctp, mpath, name), roi_feats in zip(jobs, results):
+        print(f"    -> {name}: {len(roi_feats)} 特征")
         for k, v in roi_feats.items():
-            feats[f"{roi_name}::{k}"] = v
-        print(f"       {len(roi_feats)} 特征")
+            feats[f"{name}::{k}"] = v
 
     # 2) 四类新指标
     print("    -> 分肺叶气肿 / 心肺血管 / 气道耦合 / 膈肌 ...")

@@ -6,7 +6,8 @@
 在 Docker 容器内运行，对一批患者完成：
   1) TotalSegmentator -> 16 黄金靶区掩膜 (肺叶×5, 肺血管, 气管支气管,
                          主动脉, 肺动脉, 气管, 心脏+四腔, 心肌)
-  2) PyRadiomics      -> 每个掩膜的 shape/firstorder 特征 + 四类 COPD 表型指标
+  2) PyRadiomics      -> 与 Windows fast 版一致（肺叶 LoG+纹理、心肌 Wavelet、
+                         Vessel/BV 11 特征 + 四类 COPD 表型指标）
                          输出 <患者>_radiomics.json
   3) 合并 CSV         -> 全部患者汇成 radiomics_all_patients.csv
 
@@ -16,7 +17,8 @@
 
 用法 (容器内):
   python /app/run_pipeline.py --input-dir /data/input --output-dir /data/output \
-                              --device cuda:0 [--force] [--seg-only] [--radiomics-only]
+                              --device cuda:0 [--force] [--seg-only] [--radiomics-only] \
+                              [--workers 8] [--patients 患者A,患者B]
 """
 import argparse
 import glob
@@ -56,6 +58,10 @@ def parse_args():
     p.add_argument("--force", action="store_true", help="radiomics json 已存在也重算")
     p.add_argument("--seg-only", action="store_true", help="只分割，不做特征提取")
     p.add_argument("--radiomics-only", action="store_true", help="只做特征提取（用已有掩膜）")
+    p.add_argument("--workers", type=int, default=min(8, os.cpu_count() or 4),
+                   help="掩膜并行进程数（默认 min(8, 核心数)）")
+    p.add_argument("--patients", default=None,
+                   help="只处理指定患者文件夹（逗号分隔，与文件夹名精确匹配），默认全部")
     return p.parse_args()
 
 
@@ -206,7 +212,7 @@ def process_patient(patient_dir, output_base, device, args):
         if ct_path and os.path.isfile(ct_path):
             try:
                 print(f"  [Radiomics] 提取特征中 ...")
-                feats = extract_patient_radiomics(ct_path, out_dir, patient_name)
+                feats = extract_patient_radiomics(ct_path, out_dir, patient_name, workers=args.workers)
                 with open(radiomics_json, "w", encoding="utf-8") as f:
                     json.dump(_to_jsonable(feats), f, indent=2, ensure_ascii=False)
                 info["radiomics_json"] = os.path.basename(radiomics_json)
@@ -245,6 +251,15 @@ def main():
         # 单患者目录
         patients = [os.path.basename(input_dir.rstrip("/\\"))]
         input_dir = os.path.dirname(input_dir.rstrip("/\\"))
+
+    # --patients 过滤：只处理指定患者文件夹（逗号分隔，按文件夹名精确匹配）
+    if args.patients:
+        wanted = {s.strip() for s in args.patients.split(",") if s.strip()}
+        patients = [p for p in patients if p in wanted]
+        missing = sorted(wanted - set(patients))
+        if missing:
+            print(f"  [warn] 以下患者文件夹未在输入目录中找到: {missing}")
+        print(f"  [过滤] 本次仅处理 {len(patients)} 个患者: {patients}")
 
     results = []
     for i, p in enumerate(patients, 1):
