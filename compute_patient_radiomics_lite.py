@@ -32,6 +32,7 @@ import SimpleITK as sitk
 import scipy.ndimage as ndi
 from skimage.morphology import skeletonize
 from multiprocessing import Pool
+import multiprocessing as mp
 from radiomics import featureextractor
 import logging
 
@@ -53,6 +54,8 @@ def parse_args():
     p.add_argument("--force", action="store_true", help="已存在 json 也重算")
     p.add_argument("--workers", type=int, default=min(8, os.cpu_count() or 4),
                    help="并行进程数")
+    p.add_argument("--timeout", type=int, default=2400,
+                   help="单患者超时秒数（默认 2400=40min；超时自动终止该患者并继续下一个，避免整体卡死）")
     return p.parse_args()
 
 
@@ -200,6 +203,10 @@ def _worker_pyradiomics(args):
     pid = os.getpid()
     t0 = time.time()
     try:
+        # 关键修复：每个 worker 只用 1 个 ITK 线程。
+        # 之前模块级 SetGlobalDefaultNumberOfThreads(0)=用满全部核心，4 个 worker
+        # 各自开满核跑滤波 -> 内存成倍爆炸，遇到 500+ 层大 CT 直接挂死。
+        sitk.ProcessObject.SetGlobalDefaultNumberOfThreads(1)
         ct = sitk.ReadImage(ct_path)
         mask = sitk.ReadImage(mask_path)
         ext = _build_extractor(roi_name)
@@ -574,15 +581,51 @@ def main():
         wanted = set(args.patients.split(","))
         patients = [p for p in patients if p["patient"] in wanted]
 
-    print(f"发现 {len(patients)} 个患者，开始提取（精简版/去纹理/诊断）...")
+    print(f"发现 {len(patients)} 个患者，开始提取（精简版/去纹理/诊断；单患者超时 {args.timeout}s）...")
     results = []
+    failed = []
     for i, meta in enumerate(patients, 1):
-        print(f"\n[{i}/{len(patients)}] {meta['patient']}")
-        r = process_patient(meta, nifti_dir, seg_dir, args.workers, args.force)
-        if r:
-            results.append(r)
+        patient = meta["patient"]
+        out_json = os.path.join(seg_dir, f"{patient}_radiomics.json")
+        if os.path.exists(out_json) and not args.force:
+            print(f"\n[{i}/{len(patients)}] {patient}  [skip] 已存在 radiomics json")
+            continue
 
-    print(f"\n完成！{len(results)}/{len(patients)} 个患者生成了 radiomics json。")
+        print(f"\n[{i}/{len(patients)}] {patient}")
+        # 关键修复：每个患者跑在独立子进程里 + 墙钟超时。
+        # 之前直接在主进程跑，pool.map 遇挂死的 worker 永不返回，整个批处理卡死
+        #（本次 26/150 就卡在 0:17 之后 2 小时无进展）。现在超时自动终止该患者并继续。
+        proc = mp.Process(target=process_patient,
+                          args=(meta, nifti_dir, seg_dir, args.workers, args.force),
+                          daemon=False)
+        proc.start()
+        proc.join(args.timeout)
+        if proc.is_alive():
+            print(f"  [TIMEOUT] {patient} 超过 {args.timeout}s 未完成，终止并跳过（其余患者继续）")
+            proc.terminate()
+            proc.join(10)
+            if proc.is_alive():
+                proc.kill()
+                proc.join()
+            failed.append(patient)
+            continue
+        # 子进程正常结束：读取其写出的 json
+        if os.path.exists(out_json):
+            try:
+                with open(out_json, encoding="utf-8") as f:
+                    results.append(json.load(f))
+            except Exception as e:
+                print(f"  [warn] 读取 {patient} json 失败: {e}")
+                failed.append(patient)
+        else:
+            print(f"  [FAIL] {patient} 未生成 radiomics json")
+            failed.append(patient)
+
+    print(f"\n完成！成功 {len(results)}/{len(patients)}，失败/超时 {len(failed)} 个患者。")
+    if failed:
+        print("  失败/超时名单:")
+        for p in failed:
+            print(f"    - {p}")
     if results:
         df = pd.DataFrame(results)
         summary = os.path.join(seg_dir, "radiomics_all_patients.json")
