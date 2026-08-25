@@ -103,6 +103,15 @@ def worker(args):
         return patient, 0, "no_masks"
     info_json = os.path.join(mask_dir, f"{patient}_segmentation_info.json")
 
+    try:
+        with open(json_path, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        return patient, 0, f"json_read:{e}"
+    # 优化：已含 Fast 特征（log-sigma / wavelet）→ 秒跳过，不重算
+    if any(("log-sigma" in k) or ("wavelet" in k) for k in data):
+        return patient, 0, None
+
     ct_path = resolve_ct_path(info_json, patient, nifti_dir)
     if ct_path is None:
         return patient, 0, "no_ct"
@@ -110,8 +119,6 @@ def worker(args):
     try:
         # 每个 worker 只用 1 个 ITK 线程：8 worker 共 8 核，避免内存爆炸
         sitk.ProcessObject.SetGlobalDefaultNumberOfThreads(1)
-        with open(json_path, encoding="utf-8") as f:
-            data = json.load(f)
         ct_img = sitk.ReadImage(ct_path)
         added = 0
         for roi in LOBE_ROIS + [MYOCARDIUM_ROI]:
@@ -168,6 +175,8 @@ def main():
                     ok += 1
                     if added:
                         print(f"  [OK] {patient}: +{added} 特征", flush=True)
+                    else:
+                        print(f"  [skip] {patient}: 已含 Fast 特征或无增量", flush=True)
     else:
         for t in todo:
             patient, added, err = worker(t)
@@ -178,6 +187,8 @@ def main():
                 ok += 1
                 if added:
                     print(f"  [OK] {patient}: +{added} 特征", flush=True)
+                else:
+                    print(f"  [skip] {patient}: 已含 Fast 特征或无增量", flush=True)
 
     print(f"\n完成！成功 {ok}/{len(patients)}，失败 {len(errs)}，总耗时 {time.time()-t0:.0f}s")
     if errs:
