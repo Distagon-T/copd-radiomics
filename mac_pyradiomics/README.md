@@ -24,6 +24,7 @@ mac_pyradiomics/
 ├── run_pipeline.py       # 主入口：分割 + Fast 特征提取（--radiomics-only 只算特征）
 ├── run_radiomics.py      # Fast 纯特征提取（复用已有掩膜）
 ├── run_radiomics_lite.py # Lite 纯特征提取（全 ROI shape+firstorder，更快）
+├── add_fast_features_to_lite.py  # 给已有 Lite JSON 补 Fast 增量（肺叶 LoG+纹理 / 心肌 Wavelet）
 ├── radiomics_extract.py  # 特征核心（Fast/Lite 策略 + Vessel/BV + KEEP_FILES）
 └── merge_radiomics.py    # 合并 JSON -> CSV
 ```
@@ -57,6 +58,12 @@ python run_radiomics.py --nifti-dir /path/CT --seg-dir /path/seg --workers 2
 ```bash
 python run_radiomics_lite.py --nifti-dir /path/CT --seg-dir /path/seg --workers 2
 ```
+
+**⑤ 给已有 Lite JSON 补 Fast 增量特征**（只加缺失键，肺叶 LoG+纹理 / 心肌 Wavelet）：
+```bash
+python add_fast_features_to_lite.py -n /path/CT -s /path/seg --workers 8
+```
+> 适合：Lite 已算完、想升级成 Fast 特征集而不重算已有列。跑完后用 `merge_radiomics.py` 重新合并 CSV。
 
 **指定患者**（逗号分隔，按文件夹名精确匹配）：
 ```bash
