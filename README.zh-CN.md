@@ -69,12 +69,37 @@ flowchart TD
 
 ### 4. 气道量化（AirQuant / MATLAB）
 
-基于分割出的气管-支气管树进行三维建模与逐代量化：
+基于分割出的气管-支气管树进行三维建模与逐代量化。该步骤由**两个 MATLAB 脚本**构成——底层定量引擎与特征聚合层：
 
-- **形态学**：管壁面积百分比（WA%）、壁厚、内/外径、**Pi10** 等
-- **T/D 变化**：跨代 T/D 比值突变（标准差 / CV / 斜率 / 离群率），刻画气道重塑的不均质性
-- **FWHM 边界模糊**：基于半峰宽的管壁密度与边界锐度测量，刻画泛气道急性炎症重塑
-- **PCA 异质性**：跨气道树特征矩阵的主成分异质性
+#### 4.1 `batch_airway_quant.m` — 逐分支定量（AirQuant 引擎）
+
+扫描 CT 与气道掩膜目录、按文件夹名匹配患者，由自愈合 PTK 骨架（kernel 0/3/5/7）构建 `ClinicalAirways` 网络，对**每个气道分支**做 FWHM 几何测量。每患者输出于 `<OUTPUT_DIR>/<患者>_airquant/`：
+
+| 输出 | 说明 |
+|---|---|
+| `<患者>_full_metrics.csv` | **逐分支测量表**（20 列，核心输出） |
+| `<患者>_airway_PTKskel.nii.gz` | 自愈合骨架（`skel_output`） |
+| `<患者>_airway_OuterWall.nii.gz` | 多标签外壁掩膜（1=内腔，2=外壁） |
+| `<患者>_pi10.png/.pdf` | Pi10 线性回归图 |
+| `<患者>_tree2d/_tree3d/_spline/_plot3d.png/.pdf` | 分支可视化图（2D/3D 树状图、样条图、3D 表面图） |
+| `<患者>_airquant_info.json` | 每患者元信息（路径、状态、Pi10、num_branches 等） |
+| `airquant_summary.json` | 全部患者清单 + 汇总计数 |
+
+`_full_metrics.csv`（20 列，每分支一行）：
+
+- **拓扑**：`ID`、`children_1`、`children_2`、`generation`、`method`、`parent`、`stats_arclength`、`stats_change_deg`、`stats_euclength`、`stats_parent_deg`、`stats_sibling_deg`、`stats_tortuosity`
+- **几何（FWHM）**：`LumenArea_mm2`、`WallArea_mm2`、`WA_pct`、`Inner_Diameter_mm`、`Outer_Diameter_mm`、`Wall_Thickness_mm`、`Pi_Perimeter_mm`、`Sqrt_WallArea`
+
+#### 4.2 `compute_airway_features.m` — 每患者聚合特征（69 列）
+
+读取 `_full_metrics.csv`（并重读 CT/掩膜做管壁密度测定），把逐分支数据聚合成**每患者一行**的特征。特征分组：
+
+- **形态学与 T/D**：`n_branches`、`Pi10`、`Din_mean_all/gen3/4/5`、`Dout_mean_all`、`WA_pct_gen3/4/5/3to6/all`、`TD_ratio_all/gen3/4/5`；T/D 急剧变化指标 `TD_ratio_std_all`、`TD_ratio_cv_all`、`TD_ratio_std_gen5plus`、`TD_slope_vs_gen`、`TD_outlier_ratio_z2`、`TD_distal_minus_proximal`、`LA_mean_all`、`WA_mean_all`、`Pi_mean_all`
+- **拓扑网络**：`max_generation`、`mean/std_tortuosity`、`mean_parent_angle`、`mean_sibling_angle`、`mean_parent_angle_gen3/4`、`n_terminal_total/gen5plus/gen6plus`、`pruning_ratio_gen5/6`、`mean_WA_pct_terminal`
+- **管壁密度/纹理**（重读 CT + FWHM 管壁 HU）：`wall_hu_mean/std/skew/kurt`、`wall_hu_mean_gen3/4/5`、`pca_explained_1/2/3`、`pca_first_pc_std`
+- **FWHM 边界模糊度**：`blur_peak_hu_mean/std`、`blur_lung_hu_mean`、`blur_contrast_mean/std`、`blur_trans_width_mean/std`（mm）、`blur_edge_sharp_mean/std`（HU/mm）；≥5 代聚合 `blur_contrast/_trans_width/_edge_sharp/_peak_hu_gen5plus`；**FWHM 版 T/D**：`TD_fwhm_all/std/cv`、`TD_fwhm_gen5plus`、`TD_fwhm_std_gen5plus`、`TD_fwhm_slope_vs_gen`
+
+> **注意**：`batch_airway_quant.m` 需要完整的 AirQuant 路径（`AirQuantAddPath`，即 `addpath(genpath('AirQuant'))`）——否则 `ClinicalAirways` 未定义，管壁密度/FWHM 特征会被跳过。构建网络时优先使用已保存的 PTK 骨架（`skel_output`）而非重新 `bwskel`（后者在部分掩膜上会产生无效 BFS 边拓扑）。
 
 ### 5. 肺血管高级特征（Vessel_*）
 

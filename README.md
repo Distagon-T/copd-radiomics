@@ -69,12 +69,37 @@ Beyond radiomics, four classes of interpretable structural–functional metrics 
 
 ### 4. Airway Quantification (AirQuant / MATLAB)
 
-Three-dimensional modeling and generation-wise quantification of the segmented tracheobronchial tree:
+Three-dimensional modeling and generation-wise quantification of the segmented tracheobronchial tree. This step is split into **two MATLAB scripts** — the low-level quantifier and the feature-aggregation layer:
 
-- **Morphology**: wall-area percentage (WA%), wall thickness, inner/outer diameter, **Pi10**, etc.
-- **T/D changes**: cross-generation T/D ratio variation (std / CV / slope / outlier rate), reflecting heterogeneity of airway remodeling
-- **FWHM boundary blur**: half-maximum-width-based wall density and boundary-sharpness measures, capturing pan-airway acute inflammatory remodeling
-- **PCA heterogeneity**: principal-component heterogeneity of the feature matrix across the airway tree
+#### 4.1 `batch_airway_quant.m` — per-branch quantification (AirQuant engine)
+
+Scans the CT and airway-mask directories, matches patients by folder name, builds a `ClinicalAirways` network from a self-healing PTK skeleton (kernel 0/3/5/7), and performs FWHM-based geometric measurement **per airway branch**. Outputs, per patient under `<OUTPUT_DIR>/<patient>_airquant/`:
+
+| Output | Description |
+|---|---|
+| `<patient>_full_metrics.csv` | **per-branch measurement table** (20 columns, core output) |
+| `<patient>_airway_PTKskel.nii.gz` | self-healing skeleton (`skel_output`) |
+| `<patient>_airway_OuterWall.nii.gz` | multi-label outer-wall mask (1 = lumen, 2 = wall) |
+| `<patient>_pi10.png/.pdf` | Pi10 linear-regression plot |
+| `<patient>_tree2d/_tree3d/_spline/_plot3d.png/.pdf` | branch visualization plots (2D/3D tree, spline, 3D surface) |
+| `<patient>_airquant_info.json` | per-patient metadata (paths, status, Pi10, num_branches, ...) |
+| `airquant_summary.json` | manifest of all patients + summary counts |
+
+`_full_metrics.csv` (20 columns, one row per branch):
+
+- **Topology**: `ID`, `children_1`, `children_2`, `generation`, `method`, `parent`, `stats_arclength`, `stats_change_deg`, `stats_euclength`, `stats_parent_deg`, `stats_sibling_deg`, `stats_tortuosity`
+- **Geometry (FWHM)**: `LumenArea_mm2`, `WallArea_mm2`, `WA_pct`, `Inner_Diameter_mm`, `Outer_Diameter_mm`, `Wall_Thickness_mm`, `Pi_Perimeter_mm`, `Sqrt_WallArea`
+
+#### 4.2 `compute_airway_features.m` — per-patient aggregated features (69 columns)
+
+Reads `_full_metrics.csv` (and re-reads the CT/mask for wall densitometry), aggregating the per-branch data into **one row per patient**. Feature groups:
+
+- **Morphology & T/D**: `n_branches`, `Pi10`, `Din_mean_all/gen3/4/5`, `Dout_mean_all`, `WA_pct_gen3/4/5/3to6/all`, `TD_ratio_all/gen3/4/5`, plus T/D sharp-change markers `TD_ratio_std_all`, `TD_ratio_cv_all`, `TD_ratio_std_gen5plus`, `TD_slope_vs_gen`, `TD_outlier_ratio_z2`, `TD_distal_minus_proximal`, `LA_mean_all`, `WA_mean_all`, `Pi_mean_all`
+- **Topology**: `max_generation`, `mean/std_tortuosity`, `mean_parent_angle`, `mean_sibling_angle`, `mean_parent_angle_gen3/4`, `n_terminal_total/gen5plus/gen6plus`, `pruning_ratio_gen5/6`, `mean_WA_pct_terminal`
+- **Wall density / texture** (re-read CT + FWHM wall HU): `wall_hu_mean/std/skew/kurt`, `wall_hu_mean_gen3/4/5`, `pca_explained_1/2/3`, `pca_first_pc_std`
+- **FWHM boundary blur**: `blur_peak_hu_mean/std`, `blur_lung_hu_mean`, `blur_contrast_mean/std`, `blur_trans_width_mean/std` (mm), `blur_edge_sharp_mean/std` (HU/mm), plus gen≥5 aggregates `blur_contrast/_trans_width/_edge_sharp/_peak_hu_gen5plus`; **FWHM-based T/D**: `TD_fwhm_all/std/cv`, `TD_fwhm_gen5plus`, `TD_fwhm_std_gen5plus`, `TD_fwhm_slope_vs_gen`
+
+> **Note**: `batch_airway_quant.m` requires the full AirQuant path (`AirQuantAddPath`, i.e. `addpath(genpath('AirQuant'))`) — without it, `ClinicalAirways` is undefined and the wall-density/FWHM features are skipped. A saved PTK skeleton (`skel_output`) is preferred over a re-computed `bwskel` for building the network (the latter can produce invalid BFS edge topology on some masks).
 
 ### 5. Advanced Pulmonary Vessel Features (Vessel_*)
 
