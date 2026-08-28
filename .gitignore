@@ -38,6 +38,14 @@ tests/test_output/
 *.npy
 *.npz
 
+# ============ 日志 / 输出图 / R 历史 ============
+*.log
+*.eps
+.Rhistory
+*.Rhistory
+*.png
+*.svg
+
 # ============ 模型权重 ============
 *.pth
 *.pt
