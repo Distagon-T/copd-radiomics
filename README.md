@@ -43,12 +43,14 @@ flowchart TD
 
 ### 0. CT Normalization
 
-Before segmentation, each patient's chest CT is isotropically resampled to **1×1×1 mm** voxels to remove acquisition-dependent spacing differences (slice thickness / in-plane resolution vary across scanners). [`normalize_ct_batch.py`](normalize_ct_batch.py) automates this for an entire cohort:
+Before segmentation, each patient's chest CT is isotropically resampled to **1×1×1 mm** voxels (removing acquisition-dependent spacing differences), mildly **Gaussian-smoothed** (default σ = 0.5 mm) to suppress sharp-reconstruction-kernel noise, and **discretized at a fixed 25-HU bin width** for reproducible radiomics. [`normalize_ct_batch.py`](normalize_ct_batch.py) automates this for an entire cohort:
 
 1. Reads each patient's `<patient>_dicom_info.json` and selects the **largest-slice** series (by DICOM `Instances`; falls back to `nibabel` z-dim when the JSON is missing).
 2. Resamples that CT to 1×1×1 mm isotropic voxels with SimpleITK (linear interpolation by default, `--interp bspline` optional), preserving origin / direction and filling out-of-bounds voxels with air (−1024 HU).
-3. Saves `<source>_normalized.nii.gz` alongside the source (gz-compressed by default; `--no-compress --out-suffix _normalized.nii` for plain `.nii`).
-4. Writes a `Normalization` record back into the DICOM-info JSON (source series, normalized path, spacing, shape) and marks the selected series `SelectedForNormalization: true`.
+3. Applies a mild Gaussian low-pass filter (`--gauss-sigma`, default 0.5 mm) to counter sharpening-kernel noise.
+4. Performs fixed gray-level discretization with **bin width = 25 HU** (`--bin-width`), anchored at −1024 HU (`--hu-floor`): each voxel is mapped to the lower edge of its 25-HU bin (`floor((HU+1024)/25)·25 − 1024`, int16). A downstream `binWidth=25` re-binning reproduces the same bins.
+5. Saves `<source>_normalized.nii.gz` alongside the source (gz-compressed by default; `--no-compress --out-suffix _normalized.nii` for plain `.nii`).
+6. Writes a `Normalization` record back into the DICOM-info JSON (source series, normalized path, spacing, shape, Gaussian parameters, bin width) and marks the selected series `SelectedForNormalization: true`.
 
 The script is **resumable** (skips already-normalized patients), processes patients serially to limit memory, and writes `normalize_run.log` + `normalize_results.csv`. Usage:
 

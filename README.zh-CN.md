@@ -37,12 +37,14 @@ flowchart TD
 
 ### 0. CT 归一化
 
-分割前先将每位患者的胸部 CT 各向同性重采样为 **1×1×1 mm** 体素，消除不同机型 / 扫描协议带来的层厚与面内分辨率差异。[`normalize_ct_batch.py`](normalize_ct_batch.py) 可对整个队列自动化完成：
+分割前先将每位患者的胸部 CT 各向同性重采样为 **1×1×1 mm** 体素（消除层厚与面内分辨率差异），再施加**轻度高斯平滑**（默认 σ=0.5 mm）抑制加锐重建核的高频噪声，最后做**固定 25-HU 灰度离散化**以保证影像组学可重复性。[`normalize_ct_batch.py`](normalize_ct_batch.py) 可对整个队列自动化完成：
 
 1. 读取每例 `<患者>_dicom_info.json`，按 DICOM `Instances` 选**层数最多**的序列（json 缺失时兜底用 `nibabel` 量 z 轴层数）；
 2. 用 SimpleITK 将该 CT 重采样为 1×1×1 mm 各向同性体素（默认线性插值，`--interp bspline` 可选），保持 origin / direction，越界体素填空气（−1024 HU）；
-3. 输出 `<源>_normalized.nii.gz` 与源文件同目录（默认 gz 压缩；`--no-compress --out-suffix _normalized.nii` 输出纯 `.nii`）；
-4. 把 `Normalization` 记录写回 DICOM-info JSON（源序列、归一化路径、间距、shape），并给选中序列打 `SelectedForNormalization: true` 标记。
+3. 施加轻度高斯低通滤波（`--gauss-sigma`，默认 0.5 mm），抵消加锐核噪声；
+4. 固定灰度离散化：**bin width = 25 HU**（`--bin-width`），以 −1024 HU 为定标下限（`--hu-floor`），每个体素映射为其 25-HU bin 的下沿值（`floor((HU+1024)/25)·25 − 1024`，int16）；下游用 `binWidth=25` 重离散化会得到完全相同的 bin；
+5. 输出 `<源>_normalized.nii.gz` 与源文件同目录（默认 gz 压缩；`--no-compress --out-suffix _normalized.nii` 输出纯 `.nii`）；
+6. 把 `Normalization` 记录写回 DICOM-info JSON（源序列、归一化路径、间距、shape、高斯参数、bin width），并给选中序列打 `SelectedForNormalization: true` 标记。
 
 脚本支持**断点续传**（已归一化自动跳过）、串行处理控制内存，并输出 `normalize_run.log` 与 `normalize_results.csv`。用法：
 

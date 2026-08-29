@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-CT 各向同性重采样归一化脚本（1x1x1 mm 默认）
-================================================
+CT 归一化脚本：重采样 + 高斯平滑 + 灰度离散化（1x1x1 mm / 25 HU 默认）
+========================================================================
 对每个患者：
   1. 读取 <患者>_dicom_info.json 中的 Series 信息，按 Instances(层数) 选最大的 CT；
      （json 缺失时兜底用 nibabel 量 z 轴层数）
   2. 把选中的最大层数 .nii.gz 重采样为 1x1x1 mm 各向同性体素（保持 origin/direction）；
-  3. 存储为 <原名>_normalized.nii.gz（--out-suffix 可改，如 _normalized.nii）；
-  4. 把归一化信息写回 json（顶层 Normalization dict + 选中 Series 打标 SelectedForNormalization）。
+  3. 强制轻度高斯低通滤波（默认 sigma=0.5mm，抵消加锐核高频噪声；--gauss-sigma 可调，
+     --no-smooth 可关闭）；
+  4. 固定灰度离散化：bin width = 25 HU（--bin-width 可调），相对 -1024 HU 定标
+     （--hu-floor），输出每个 25-HU bin 的下沿 HU 值（int16，--no-discretize 可关闭）；
+  5. 存储为 <原名>_normalized.nii.gz（--out-suffix 可改，如 _normalized.nii）；
+  6. 把归一化信息写回 json（顶层 Normalization dict + 选中 Series 打标 SelectedForNormalization）。
 
 用法:
   python normalize_ct_batch.py
-  python normalize_ct_batch.py -i E:/DICOM/2026-05-nifti --spacing 1 1 1 --interp bspline
+  python normalize_ct_batch.py -i E:/DICOM/2026-05-nifti --gauss-sigma 1.0 --bin-width 25
   python normalize_ct_batch.py -i E:/DICOM/2026-05-nifti --patients "id1,id2" --force
-  python normalize_ct_batch.py -i E:/DICOM/2026-05-nifti --out-suffix _normalized.nii --no-compress
+  python normalize_ct_batch.py -i E:/DICOM/2026-05-nifti --no-smooth --no-discretize  # 仅重采样
 说明:
   - 串行处理（每例 ~512x512x~500 层，重采样内存峰值 ~1GB，串行最安全，避免 OOM）。
   - 断点续传：若 _normalized 文件已存在且 json 已标记，则跳过；--force 强制重跑。
@@ -49,6 +53,14 @@ def parse_args():
                    help="目标体素间距 x y z (mm)，默认 1 1 1")
     p.add_argument("--interp", choices=list(INTERP_MAP), default="linear",
                    help="插值方式：linear 或 bspline，默认 linear")
+    p.add_argument("--gauss-sigma", type=float, default=0.5,
+                   help="高斯平滑 sigma (mm，物理间距)，默认 0.5；<=0 关闭")
+    p.add_argument("--no-smooth", action="store_true", help="跳过高斯平滑")
+    p.add_argument("--bin-width", type=float, default=25.0,
+                   help="灰度离散化 bin width (HU)，默认 25")
+    p.add_argument("--hu-floor", type=float, default=-1024.0,
+                   help="离散化定标下限 HU（空气），默认 -1024")
+    p.add_argument("--no-discretize", action="store_true", help="跳过灰度离散化")
     p.add_argument("--patients", default=None,
                    help="只处理指定患者（逗号分隔），默认全部")
     p.add_argument("--limit", type=int, default=None,
@@ -139,7 +151,33 @@ def resample_isotropic(image, target_spacing, interpolator):
     return rf.Execute(image)
 
 
-def update_json_with_normalization(info_json, nii_src, nii_norm, folder, target_spacing, shape, interp_name):
+def gaussian_smooth(image, sigma_mm):
+    """轻度高斯低通滤波，抵消加锐核高频噪声；sigma 单位 mm（基于物理间距）。"""
+    gf = sitk.SmoothingRecursiveGaussianImageFilter()
+    gf.SetSigma([float(sigma_mm)] * image.GetDimension())
+    gf.SetNormalizeAcrossScale(False)  # 保持 HU 强度尺度不变
+    return gf.Execute(image)
+
+
+def discretize_hu(image, bin_width, hu_floor):
+    """
+    固定灰度离散化（bin width = bin_width HU）：
+      bin_index = floor((HU - hu_floor) / bin_width)
+      输出体素 = bin_index * bin_width + hu_floor（每个 bin 的下沿 HU 值，int16）。
+    既得到 25-HU 步进的离散灰度，又保留 HU 量纲；下游再用 pyRadiomics
+    binWidth=25 重离散化会得到完全相同的 bin（可往返）。
+    """
+    arr = sitk.GetArrayFromImage(sitk.Cast(image, sitk.sitkFloat32))  # (z, y, x)
+    idx = np.floor((arr - float(hu_floor)) / float(bin_width))
+    out_arr = (idx * float(bin_width) + float(hu_floor)).astype(np.int16)
+    out = sitk.GetImageFromArray(out_arr)
+    out.CopyInformation(image)  # 保留 origin/spacing/direction
+    return out
+
+
+def update_json_with_normalization(info_json, nii_src, nii_norm, folder, target_spacing, shape,
+                                   interp_name, gauss_sigma, bin_width, hu_floor,
+                                   smoothed, discretized):
     """把归一化信息写回 dicom_info.json（保留原字段，追加 Normalization）。"""
     if not os.path.exists(info_json):
         return None
@@ -153,6 +191,11 @@ def update_json_with_normalization(info_json, nii_src, nii_norm, folder, target_
         "target_spacing": [float(x) for x in target_spacing],
         "shape": [int(x) for x in shape],
         "interpolator": interp_name,
+        "gaussian_smoothed": bool(smoothed),
+        "gauss_sigma_mm": float(gauss_sigma),
+        "discretized": bool(discretized),
+        "bin_width_hu": float(bin_width),
+        "hu_floor": float(hu_floor),
         "created": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
     # 给选中的 Series 打标
@@ -190,7 +233,11 @@ def main():
     if args.limit:
         dirs = dirs[: args.limit]
 
+    smooth_on = (not args.no_smooth) and (args.gauss_sigma > 0)
+    disc_on = not args.no_discretize
     log(f"扫描 {root}: {len(dirs)} 个患者，目标间距 {list(spacing)}mm，插值 {args.interp}")
+    log(f"高斯平滑: {'ON sigma=%.2fmm' % args.gauss_sigma if smooth_on else 'OFF'} | "
+        f"灰度离散化: {'ON bin=%.1fHU floor=%.0fHU' % (args.bin_width, args.hu_floor) if disc_on else 'OFF'}")
     log(f"输出后缀: {args.out_suffix} (compress={args.compress})，日志: {log_path}")
 
     ok = skip = fail = 0
@@ -228,14 +275,26 @@ def main():
         try:
             img = sitk.ReadImage(nii_src)
             resampled = resample_isotropic(img, spacing, interp)
-            sitk.WriteImage(resampled, out_path, useCompression=args.compress)
-            shape = resampled.GetSize()
-            new_spacing = resampled.GetSpacing()
-            update_json_with_normalization(info_json, nii_src, out_path, folder, spacing, shape, args.interp)
+            # 轻度高斯低通滤波（抵消加锐核高频噪声）
+            if smooth_on:
+                smoothed = gaussian_smooth(resampled, args.gauss_sigma)
+            else:
+                smoothed = resampled
+            # 固定灰度离散化（bin width = 25 HU）
+            if disc_on:
+                final_img = discretize_hu(smoothed, args.bin_width, args.hu_floor)
+            else:
+                final_img = smoothed
+            sitk.WriteImage(final_img, out_path, useCompression=args.compress)
+            shape = final_img.GetSize()
+            new_spacing = final_img.GetSpacing()
+            update_json_with_normalization(info_json, nii_src, out_path, folder, spacing, shape,
+                                           args.interp, args.gauss_sigma, args.bin_width,
+                                           args.hu_floor, smooth_on, disc_on)
             dt = time.time() - t_p
             log(f"[{i}/{len(dirs)}] {pname}: OK 层数={n_slices} "
                 f"shape={tuple(shape)} spacing={tuple(round(x,4) for x in new_spacing)} "
-                f"-> {out_name} ({dt:.1f}s)")
+                f"smooth={smooth_on} discretize={disc_on} -> {out_name} ({dt:.1f}s)")
             ok += 1
             results.append((pname, os.path.basename(nii_src), out_name, "ok"))
         except Exception as e:
