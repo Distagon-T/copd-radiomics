@@ -21,7 +21,8 @@
 
 ```mermaid
 flowchart TD
-    A[胸部 CT 影像<br/>DICOM / NIfTI] --> B[CT 分割<br/>TotalSegmentator 三引擎级联]
+    A[胸部 CT 影像<br/>DICOM / NIfTI] --> A1[各向同性归一化<br/>1x1x1 mm 重采样]
+    A1 --> B[CT 分割<br/>TotalSegmentator 三引擎级联]
     B --> C[16 个靶区掩膜<br/>肺叶 · 气道 · 血管 · 心脏]
     C --> D[影像组学特征<br/>PyRadiomics 多维定量特征]
     C --> E[COPD 结构-功能表型<br/>肺叶气肿 · 气道-肺叶耦合 · 心肺 · 膈肌]
@@ -33,6 +34,21 @@ flowchart TD
 ```
 
 ## 方法
+
+### 0. CT 归一化
+
+分割前先将每位患者的胸部 CT 各向同性重采样为 **1×1×1 mm** 体素，消除不同机型 / 扫描协议带来的层厚与面内分辨率差异。[`normalize_ct_batch.py`](normalize_ct_batch.py) 可对整个队列自动化完成：
+
+1. 读取每例 `<患者>_dicom_info.json`，按 DICOM `Instances` 选**层数最多**的序列（json 缺失时兜底用 `nibabel` 量 z 轴层数）；
+2. 用 SimpleITK 将该 CT 重采样为 1×1×1 mm 各向同性体素（默认线性插值，`--interp bspline` 可选），保持 origin / direction，越界体素填空气（−1024 HU）；
+3. 输出 `<源>_normalized.nii.gz` 与源文件同目录（默认 gz 压缩；`--no-compress --out-suffix _normalized.nii` 输出纯 `.nii`）；
+4. 把 `Normalization` 记录写回 DICOM-info JSON（源序列、归一化路径、间距、shape），并给选中序列打 `SelectedForNormalization: true` 标记。
+
+脚本支持**断点续传**（已归一化自动跳过）、串行处理控制内存，并输出 `normalize_run.log` 与 `normalize_results.csv`。用法：
+
+```bash
+python normalize_ct_batch.py -i E:/DICOM/2026-05-nifti
+```
 
 ### 1. 影像分割（CT Segmentation）
 
@@ -141,6 +157,7 @@ flowchart TD
 ```
 .
 ├── 分析脚本/           # 批量分割、特征提取、建模、报告等 Python / MATLAB 脚本
+├── normalize_ct_batch.py   # 1×1×1 mm 各向同性 CT 重采样归一化 + JSON 标记
 ├── AirQuant/           # 气道量化库（第三方，含自定义量化脚本）
 ├── Connectivity-Aware-Airway-Segmentaion/  # 气道分割模型（第三方，含批量推理）
 ├── pulmonary-tree-labeling/                # 支气管树标记（第三方）

@@ -27,7 +27,8 @@ This repository covers the core computational pipeline: **segmentation → featu
 
 ```mermaid
 flowchart TD
-    A[Chest CT<br/>DICOM / NIfTI] --> B[CT Segmentation<br/>TotalSegmentator 3-engine cascade]
+    A[Chest CT<br/>DICOM / NIfTI] --> A1[Isotropic normalization<br/>1x1x1 mm resampling]
+    A1 --> B[CT Segmentation<br/>TotalSegmentator 3-engine cascade]
     B --> C[16 target masks<br/>lobes · airways · vessels · heart]
     C --> D[Radiomic features<br/>PyRadiomics multidimensional features]
     C --> E[COPD structural–functional phenotypes<br/>lobar emphysema · airway–lobe coupling · cardiopulmonary · diaphragm]
@@ -39,6 +40,21 @@ flowchart TD
 ```
 
 ## Methods
+
+### 0. CT Normalization
+
+Before segmentation, each patient's chest CT is isotropically resampled to **1×1×1 mm** voxels to remove acquisition-dependent spacing differences (slice thickness / in-plane resolution vary across scanners). [`normalize_ct_batch.py`](normalize_ct_batch.py) automates this for an entire cohort:
+
+1. Reads each patient's `<patient>_dicom_info.json` and selects the **largest-slice** series (by DICOM `Instances`; falls back to `nibabel` z-dim when the JSON is missing).
+2. Resamples that CT to 1×1×1 mm isotropic voxels with SimpleITK (linear interpolation by default, `--interp bspline` optional), preserving origin / direction and filling out-of-bounds voxels with air (−1024 HU).
+3. Saves `<source>_normalized.nii.gz` alongside the source (gz-compressed by default; `--no-compress --out-suffix _normalized.nii` for plain `.nii`).
+4. Writes a `Normalization` record back into the DICOM-info JSON (source series, normalized path, spacing, shape) and marks the selected series `SelectedForNormalization: true`.
+
+The script is **resumable** (skips already-normalized patients), processes patients serially to limit memory, and writes `normalize_run.log` + `normalize_results.csv`. Usage:
+
+```bash
+python normalize_ct_batch.py -i E:/DICOM/2026-05-nifti
+```
 
 ### 1. CT Segmentation
 
@@ -147,6 +163,7 @@ Each task uniformly outputs Markdown / HTML reports (ROC curves, univariate tabl
 ```
 .
 ├── Analysis/              # 正式分析脚本（标签、整合、对齐、外验、报告）+ README 使用规范
+├── normalize_ct_batch.py  # isotropic 1×1×1 mm CT resampling + JSON tagging
 ├── docs/                  # 研究说明文档（队列/方法/结果/局限）
 ├── Rscripts/              # R 分析脚本（KM / glmnet / svm 等）
 ├── AirQuant/              # airway-quantification library (third-party, with custom quantification scripts)
