@@ -65,7 +65,11 @@ def main():
         print(f"[ERR] 未找到 {DECLARED}，请先运行 compute_declared_features.py")
         return
     d = pd.read_csv(DECLARED, low_memory=False, dtype={"PatientID": str})
-    d = d[d["_err"].astype(str) == ""].copy() if "_err" in d.columns else d.copy()
+    # _err 为空/缺失 = 成功（写 CSV 时空字符串读回为 NaN，需兼容）
+    if "_err" in d.columns:
+        d = d[d["_err"].isna() | (d["_err"].astype(str).str.strip() == "")].copy()
+    else:
+        d = d.copy()
     d["_pid"] = d["PatientID"].map(norm_pid)
     print(f"补算表: {len(d)} 例，新特征列 {len(NEW_FEAT_COLS)} 个")
 
