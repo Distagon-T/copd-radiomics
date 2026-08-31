@@ -382,6 +382,9 @@ def diaphragm_flattening(ct_arr, masks):
 # =========================================================================
 # 主流程：逐患者
 # =========================================================================
+from declared_features_lib import declared_features
+
+
 def process_patient(meta, nifti_dir, seg_dir, extractors, force=False):
     patient = meta["patient"]
     mask_dir = meta["mask_dir"]
@@ -432,6 +435,10 @@ def process_patient(meta, nifti_dir, seg_dir, extractors, force=False):
     feats.update(cardiopulmonary_features(ct_arr, spacing, mask_arrays))
     feats.update(airway_lobe_coupling(mask_arrays, spacing))
     feats.update(diaphragm_flattening(ct_arr, mask_arrays))
+
+    # 2.5) 申报清单补算特征（CAC Agatston/MS · 心包脂肪 · FAI · 主动脉 · 心胸比 · 血管体积/CSA）
+    #      与 radiomics 一并输出，实现单脚本双输出（见 declared_features_lib.py / README §5.1）
+    feats.update(declared_features(ct_img, masks))
 
     # 3) 保存 json（先清洗 numpy 类型，避免 ndarray / np.float64 无法序列化）
     with open(out_json, "w", encoding="utf-8") as f:

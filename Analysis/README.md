@@ -33,6 +33,14 @@
                     run_topk_generalization / missing_stats / run_report_balanced / run_final_report
 ```
 
+> 📌 **申报清单补算特征**（不在此目录，见根 `README.md` §5.1）：根目录
+> `compute_declared_features.py`（基于已有 16 掩膜 + 原始 HU CT 多进程补算 12 个缺失特征：
+> 肺血管体积/CSA、PA 直径/支气管-血管比、CAC Agatston/MS、心包脂肪体积/密度、FAI、
+> 主动脉外径/壁厚、心胸比）→ `merge_declared_features.py`（并入
+> `E:\DICOM\results\patients_feature_label.csv` 与 ordinal 建模表，按 PatientID，.bak 备份）。
+> 新前缀（`EpiFat_/FAI_/Aorta_/BronchoArtery_/CardioThoracic_`）已加入 `is_feature()` 白名单，
+> 下游 LASSO/SVM 建模自动纳入。
+
 ## 2. 脚本清单
 
 | 脚本 | 用法 | 输入 | 输出 |

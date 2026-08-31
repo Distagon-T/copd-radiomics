@@ -14,6 +14,8 @@ Mac 端**唯一**的影像流水线包：可做 TotalSegmentator 分割，也可
 - **黄金 16 靶区**：只计算 16 个心肺靶区掩膜（KEEP_FILES 过滤）
 - **掩膜级多进程并行** + **单患者超时保护**（挂死患者自动跳过，整批不卡死）
 - 四类 COPD 表型指标 + 11 个 Vessel/BV 高级特征
+- **申报清单补算特征**：CAC Agatston/MS · 心包脂肪 · FAI · 主动脉直径/壁厚 · 心胸比 · 血管体积/CSA
+  （与 Windows `compute_patient_radiomics*.py` 单脚本双输出一致，见 `declared_features_lib.py`）
 
 ## 目录结构
 
@@ -25,7 +27,8 @@ mac_pyradiomics/
 ├── run_radiomics.py      # Fast 纯特征提取（复用已有掩膜）
 ├── run_radiomics_lite.py # Lite 纯特征提取（全 ROI shape+firstorder，更快）
 ├── add_fast_features_to_lite.py  # 给已有 Lite JSON 补 Fast 增量（肺叶 LoG+纹理 / 心肌 Wavelet）
-├── radiomics_extract.py  # 特征核心（Fast/Lite 策略 + Vessel/BV + KEEP_FILES）
+├── radiomics_extract.py  # 特征核心（Fast/Lite 策略 + Vessel/BV + 补算特征 + KEEP_FILES）
+├── declared_features_lib.py  # 申报清单补算特征（CAC/心包脂肪/FAI/主动脉/心胸比/血管CSA）
 └── merge_radiomics.py    # 合并 JSON -> CSV
 ```
 

@@ -498,6 +498,9 @@ def vessel_advanced_features(vessels_mask, spacing):
 # =========================================================================
 # 主流程：逐患者（掩膜并行）
 # =========================================================================
+from declared_features_lib import declared_features
+
+
 def process_patient(meta, nifti_dir, seg_dir, workers=8, force=False):
     patient = meta["patient"]
     mask_dir = meta["mask_dir"]
@@ -551,6 +554,8 @@ def process_patient(meta, nifti_dir, seg_dir, workers=8, force=False):
     vessel = mask_arrays.get('lung_vessels')
     if vessel is not None:
         feats.update(vessel_advanced_features(vessel, spacing))
+    # 申报清单补算特征（CAC/脂肪/FAI/主动脉/心胸比/血管）——与 radiomics 一并输出
+    feats.update(declared_features(ct_img, masks))
 
     # 3) 保存 json（先清洗 numpy 类型）
     with open(out_json, "w", encoding="utf-8") as f:

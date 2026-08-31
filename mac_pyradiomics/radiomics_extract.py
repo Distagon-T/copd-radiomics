@@ -24,6 +24,7 @@ import logging
 import scipy.ndimage as ndi
 from skimage.morphology import skeletonize
 from multiprocessing import Pool
+from declared_features_lib import declared_features  # noqa: E402  申报清单补算特征（与 Windows 单脚本双输出一致）
 
 
 # =========================================================================
@@ -454,4 +455,7 @@ def extract_patient_radiomics(ct_path, mask_dir, patient_name, workers=2, lite=F
     vessel = mask_arrays.get('lung_vessels')
     if vessel is not None:
         feats.update(vessel_advanced_features(vessel, spacing))
+    # 申报清单补算特征（CAC Agatston/MS · 心包脂肪 · FAI · 主动脉 · 心胸比 · 血管体积/CSA）
+    # 与 Windows compute_patient_radiomics*.py 一致：radiomics 与补算特征单次输出（见 declared_features_lib.py）
+    feats.update(declared_features(ct_img, masks))
     return feats

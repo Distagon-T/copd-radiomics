@@ -20,6 +20,7 @@ docker-radiomics-full/
 ├── requirements.txt        # Python 依赖（含 pyradiomics / TotalSegmentator）
 ├── run_pipeline.py         # 统一入口：分割 + 特征提取 + 合并
 ├── radiomics_extract.py    # PyRadiomics 完整特征核心（全部耗时特征）
+├── declared_features_lib.py  # 申报清单补算特征（CAC/心包脂肪/FAI/主动脉/心胸比/血管CSA）
 ├── merge_radiomics.py      # 合并 JSON -> CSV
 ├── prepare_package.py      # 离线打包工具（收集权重 / 生成 wheelhouse）
 ├── weights/nnunet/         # TotalSegmentator 权重（已就位，2230MB）
@@ -40,7 +41,10 @@ docker-radiomics-full/
    - 气道-肺叶耦合（气道在各肺叶占比）
    - 心肺共病（PA/Ao 直径比 / RV/LV 容积比 / CAC 钙化体积）
    - 膈肌形态（肺底轮廓填充比）
-4. **合并 CSV**：全部患者 → `radiomics_all_patients.csv`
+4. **申报清单补算特征**（`declared_features_lib.py`）：CAC Agatston/MS · 心包脂肪 · FAI ·
+   主动脉直径/壁厚 · 心胸比 · 血管体积/CSA · 主肺动脉等效直径
+   （与 Windows 单脚本双输出一致；BronchoArtery_Ratio 由 AirQuant MATLAB 计算）
+5. **合并 CSV**：全部患者 → `radiomics_all_patients.csv`
 
 **断点续传**：掩膜已齐全的患者跳过分割；`radiomics.json` 已存在的患者完全跳过（`--force` 重算）。
 
@@ -114,7 +118,8 @@ pip install conda-pack
 conda pack -n radiomics-full -o radiomics-full_env.tar.gz
 ```
 把 `radiomics-full_env.tar.gz` + 本目录的代码（`run_pipeline.py`、
-`radiomics_extract.py`、`merge_radiomics.py`）+ `weights/` 一起拷到医院。
+`radiomics_extract.py`、`declared_features_lib.py`、`merge_radiomics.py`）
++ `weights/` 一起拷到医院。
 
 ### 2. 医院端解压并运行
 ```bash

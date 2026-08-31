@@ -33,8 +33,9 @@ flowchart TD
     C --> D[Radiomic features<br/>PyRadiomics multidimensional features]
     C --> E[COPD structural–functional phenotypes<br/>lobar emphysema · airway–lobe coupling · cardiopulmonary · diaphragm]
     C --> F[Advanced pulmonary vessel features<br/>Vessel_* branching / density / tortuosity / fractal]
+    C --> F2[Declared grant features<br/>CAC Agatston/MS · epicardial fat · FAI · CTR · aorta wall · vessel CSA]
     B --> G[3D airway modeling & quantification<br/>AirQuant · Pi10 · wall thickness · FWHM]
-    D & E & F & G --> H[Feature selection & multimodal fusion<br/>LASSO / univariate / multiple models]
+    D & E & F & F2 & G --> H[Feature selection & multimodal fusion<br/>LASSO / univariate / multiple models]
     H --> I[Model evaluation<br/>stratified K-fold CV · bootstrap · SHAP]
     I --> J[Report generation<br/>ROC · univariate tables · forest plots · calibration]
 ```
@@ -137,6 +138,22 @@ To replace the slow, low-specificity vessel shape features, a set of fast, inter
 | `Vessel_Branch / Junction / Endpoint_Count` | branch / bifurcation / endpoint counts |
 | `Vessel_Branching_Density_per_mm` | bifurcation density |
 | `Vessel_Tortuosity_Mean / _Max` | tortuosity (arc length / straight-line distance) |
+
+### 5.1 Declared-Feature Supplementation (calcification / fat / FAI / CTR / aorta / vessel CSA)
+
+To cover the grant-application feature checklist (calcium score, epicardial fat, pericoronary fat attenuation index, cardiothoracic ratio, aortic wall, pulmonary-vessel cross-sectional area), the shared module [`declared_features_lib.py`](declared_features_lib.py) implements the columns on top of the existing 16 masks + original-HU CT (no new segmentation model). It is called **inline by the radiomics extraction scripts** ([`compute_patient_radiomics.py`](compute_patient_radiomics.py) / `_lite` / `_fast`) — so one run outputs both radiomics and most declared features into the same per-patient JSON → merged CSV. The same module is **vendored into the Mac and Ubuntu-Docker packages** (`mac_pyradiomics/declared_features_lib.py`, `docker-radiomics-full/declared_features_lib.py`, `docker-radiomics-seg/declared_features_lib.py`) and called from their `radiomics_extract.extract_patient_radiomics()`, so every platform emits identical declared-feature columns; a full re-run (e.g. `run_pipeline.py --radiomics-only` / `run_radiomics.py`) is needed to populate them. The bronchus–artery ratio (`BronchoArtery_Ratio`) is instead computed in the **AirQuant MATLAB** script `AirQuant/compute_airway_features.m` (where airway `Din` lives), reading the `pulmonary_artery` mask. A standalone batch [`compute_declared_features.py`](compute_declared_features.py) (multi-process, resumable) also emits the current-cohort values, and [`merge_declared_features.py`](merge_declared_features.py) merges them into the modeling tables (`patients_feature_label.csv` / `ordinal_risk_all_patients_feature_label.csv`) keyed by `PatientID` (with `.bak` backup, adding only new columns).
+
+| Feature | Meaning | Caveat |
+|---|---|---|
+| `Vessel_Volume_mm3` / `Vessel_CSA_mean_mm2` | pulmonary-vessel volume / mean per-slice cross-sectional area | — |
+| `PA_Equivalent_Diameter_mm` | main-PA equivalent diameter (from `pulmonary_artery` mask) | computed in radiomics |
+| `BronchoArtery_Ratio` | bronchus–artery ratio (proxy = airway `Din_mean_all` / PA equivalent diameter) | **computed in AirQuant MATLAB** (`compute_airway_features.m`), not in radiomics; ratio is a proxy |
+| `CAC_Agatston` / `CAC_Mass_mg` | coronary-calcium Agatston & mass score on whole-heart mask (HU≥130, per-slice connected lesions) | whole-heart definition includes valve/aortic-root calcification → larger than clinical coronary Agatston |
+| `EpiFat_Volume_mm3` / `EpiFat_Mean_HU` / `FAI_pericoronary_HU` | epicardial/pericoronary fat volume & attenuation (HU∈[−190,−30] within dilated heart) | FAI is a regional proxy; needs coronary centerlines for clinical-grade FAI |
+| `Aorta_Outer_Mean_Diameter_mm` / `Aorta_Wall_Fraction` / `Aorta_Wall_Thickness_mm_approx` | aorta outer diameter; wall fraction; morphological wall-thickness proxy | wall thickness is a morphology proxy (non-contrast CT lacks lumen segmentation) |
+| `CardioThoracic_Ratio` | cardiothoracic ratio (max heart width / lung width) | — |
+
+All 12 columns are whitelisted in `is_feature()` (prefixes `EpiFat_/FAI_/Aorta_/BronchoArtery_/CardioThoracic_` added) so downstream LASSO/SVM modeling picks them up automatically.
 
 ### 6. Modeling & Evaluation
 

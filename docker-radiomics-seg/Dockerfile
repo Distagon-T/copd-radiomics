@@ -36,6 +36,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 # 复制代码
 COPY run_pipeline.py /app/run_pipeline.py
 COPY radiomics_extract.py /app/radiomics_extract.py
+COPY declared_features_lib.py /app/declared_features_lib.py
 COPY merge_radiomics.py /app/merge_radiomics.py
 COPY weights /app/weights
 
